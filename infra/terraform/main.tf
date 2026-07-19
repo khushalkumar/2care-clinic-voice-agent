@@ -1,5 +1,6 @@
 locals {
   name          = "2care-voice-${var.environment}"
+  db_identifier = "voice-${var.environment}"
   production    = var.environment == "production"
   desired_count = local.production ? var.desired_count_production : var.desired_count_staging
   az_count      = 2
@@ -222,7 +223,7 @@ resource "aws_db_subnet_group" "main" {
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier                    = local.name
+  identifier                    = local.db_identifier
   engine                        = "postgres"
   engine_version                = "16.4"
   instance_class                = var.database_instance_class
@@ -242,7 +243,7 @@ resource "aws_db_instance" "postgres" {
   backup_retention_period       = local.production ? 14 : 3
   deletion_protection           = local.production
   skip_final_snapshot           = !local.production
-  final_snapshot_identifier     = local.production ? "${local.name}-final" : null
+  final_snapshot_identifier     = local.production ? "${local.db_identifier}-final" : null
   performance_insights_enabled  = true
   auto_minor_version_upgrade    = true
   apply_immediately             = false
