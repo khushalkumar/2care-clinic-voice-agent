@@ -218,7 +218,7 @@ resource "aws_lb_listener" "https" {
 }
 
 resource "aws_db_subnet_group" "main" {
-  name       = local.name
+  name       = local.db_identifier
   subnet_ids = aws_subnet.private[*].id
 }
 
@@ -276,7 +276,6 @@ resource "aws_sqs_queue" "jobs" {
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${local.name}"
   retention_in_days = local.production ? 90 : 30
-  kms_key_id        = aws_kms_key.main.arn
 }
 
 resource "aws_ecr_repository" "app" {
