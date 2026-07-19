@@ -3,6 +3,7 @@ import os
 import shutil
 import socket
 import subprocess
+import tempfile
 from collections.abc import Iterator
 from pathlib import Path
 from uuid import uuid4
@@ -40,6 +41,7 @@ def postgres_server(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[
         pytest.fail(f"PostgreSQL test binaries missing: {', '.join(missing)}")
 
     data_dir = tmp_path_factory.mktemp("postgres") / "data"
+    socket_dir = Path(tempfile.mkdtemp(prefix="2care-pg-"))
     log_file = data_dir.parent / "postgres.log"
     port = _free_port()
     subprocess.run(
@@ -56,7 +58,7 @@ def postgres_server(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[
             "-l",
             str(log_file),
             "-o",
-            f"-h 127.0.0.1 -p {port}",
+            f"-h 127.0.0.1 -p {port} -k {socket_dir}",
             "start",
         ],
         check=True,
@@ -73,6 +75,7 @@ def postgres_server(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[
             text=True,
         )
         shutil.rmtree(data_dir, ignore_errors=True)
+        shutil.rmtree(socket_dir, ignore_errors=True)
 
 
 @pytest.fixture

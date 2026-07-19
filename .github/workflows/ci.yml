@@ -38,7 +38,7 @@ jobs:
         run: pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=75
       - name: Show PostgreSQL test diagnostics
         if: failure()
-        run: find /tmp -path '*/postgres.log' -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
+        run: find /tmp/pytest-of-runner -path '*/postgres.log' -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \; || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
