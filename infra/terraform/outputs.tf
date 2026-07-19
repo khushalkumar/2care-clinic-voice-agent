@@ -1,5 +1,5 @@
 output "api_base_url" {
-  value = "http://${aws_lb.app.dns_name}"
+  value = var.certificate_arn == null ? "http://${aws_lb.app.dns_name}" : "https://${aws_lb.app.dns_name}"
 }
 
 output "application_secret_arn" {

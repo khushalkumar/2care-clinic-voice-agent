@@ -33,7 +33,7 @@ variable "pms_provider" {
 
 variable "certificate_arn" {
   type        = string
-  description = "Optional ACM certificate ARN. Staging can use HTTP until DNS is ready."
+  description = "Optional ACM certificate ARN. Required before production voice traffic."
   default     = null
   nullable    = true
 }
