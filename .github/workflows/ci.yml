@@ -36,6 +36,9 @@ jobs:
         env:
           PG_BIN: /usr/lib/postgresql/16/bin
         run: pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=75
+      - name: Show PostgreSQL test diagnostics
+        if: failure()
+        run: find /tmp -path '*/postgres.log' -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -71,7 +74,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build immutable candidate image
         run: docker build --tag 2care-clinic-voice-agent:${{ github.sha }} .
-      - uses: aquasecurity/trivy-action@0.30.0
+      - uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: 2care-clinic-voice-agent:${{ github.sha }}
           format: sarif
