@@ -48,6 +48,7 @@ class RuntimeSettings:
     pms_provider: str
     request_hmac_secret: bytes
     availability_token_secret: bytes
+    retell_tool_token: bytes | None = None
     cliniko_api_key: str | None = None
     cliniko_shard: str | None = None
     cliniko_user_agent: str | None = None
@@ -71,6 +72,9 @@ class RuntimeSettings:
         availability_secret = _required(values, "AVAILABILITY_TOKEN_SECRET")
         if len(request_secret) < 32 or len(availability_secret) < 32:
             raise ValueError("application secrets must be at least 32 characters")
+        retell_tool_token = values.get("RETELL_TOOL_TOKEN", "").strip()
+        if retell_tool_token and len(retell_tool_token) < 32:
+            raise ValueError("RETELL_TOOL_TOKEN must be at least 32 characters")
         if pms_provider not in {"mock", "cliniko"}:
             raise ValueError("PMS_PROVIDER must be mock or cliniko")
         if app_env == "production" and pms_provider == "mock":
@@ -94,6 +98,7 @@ class RuntimeSettings:
             pms_provider=pms_provider,
             request_hmac_secret=request_secret.encode(),
             availability_token_secret=availability_secret.encode(),
+            retell_tool_token=retell_tool_token.encode() or None,
             cliniko_api_key=cliniko_api_key,
             cliniko_shard=cliniko_shard,
             cliniko_user_agent=cliniko_user_agent,

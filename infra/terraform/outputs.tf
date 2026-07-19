@@ -1,5 +1,5 @@
 output "api_base_url" {
-  value = var.certificate_arn == null ? "http://${aws_lb.app.dns_name}" : "https://${aws_lb.app.dns_name}"
+  value = "https://${aws_cloudfront_distribution.app.domain_name}"
 }
 
 output "application_secret_arn" {

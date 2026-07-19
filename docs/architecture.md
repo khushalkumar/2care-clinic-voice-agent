@@ -10,9 +10,10 @@
 
 ```mermaid
 flowchart LR
-    Caller["Patient"] --> Telephony["Telephony provider"]
-    Telephony --> Voice["Retell or Bolna"]
-    Voice -->|"Authenticated HTTPS tools"| ALB["AWS ALB"]
+    Caller["Patient"] --> Telephony["Retell web call or telephony provider"]
+    Telephony --> Voice["Retell agent"]
+    Voice -->|"Platform token over HTTPS"| Edge["CloudFront"]
+    Edge --> ALB["AWS ALB"]
     ALB --> API["FastAPI on ECS Fargate"]
     API --> DB[("RDS PostgreSQL")]
     API --> PMS["Cliniko or mock PMS"]

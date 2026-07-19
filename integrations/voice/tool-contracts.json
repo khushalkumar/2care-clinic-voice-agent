@@ -1,10 +1,19 @@
 {
   "schema_version": 1,
   "authentication": {
-    "scheme": "hmac-sha256",
-    "headers": ["X-2Care-Timestamp", "X-2Care-Event-Id", "X-2Care-Signature"]
+    "default_scheme": "hmac-sha256",
+    "default_headers": ["X-2Care-Timestamp", "X-2Care-Event-Id", "X-2Care-Signature"],
+    "retell_scheme": "static-platform-token-over-https",
+    "retell_header": "X-2Care-Platform-Token"
   },
   "tools": [
+    {
+      "name": "clinic_catalog",
+      "method": "GET",
+      "path": "/v1/tools/clinic-catalog",
+      "purpose": "Read live businesses, practitioners, and appointment types before availability lookup",
+      "required": []
+    },
     {
       "name": "bootstrap_call",
       "method": "POST",

@@ -7,45 +7,42 @@ PMS failure handling.
 
 ## Current status
 
-The credential-free system is implemented and tested against PostgreSQL and a durable mock
-PMS. The Cliniko, Bolna, and Retell accounts are authenticated; the Cliniko dry-run bootstrap
-has reconciled one business, two practitioners, and four appointment types. The live voice
-agent, inbound number, and AWS deployment have not been created and are not represented as
-completed evidence. AWS CloudShell is currently unavailable because AWS account verification is
-in progress. A project-marked synthetic Cliniko patient and one future booking have been created
-and re-read successfully as isolated live write-contract evidence.
+The backend is live in AWS staging behind an HTTPS edge, backed by RDS PostgreSQL and Cliniko.
+The deployment has passed `/live` and dependency-aware `/ready` checks. Retell agent provisioning
+is versioned in this repository and runs after each staging deployment. A web-call test is the
+current live voice entry point; an independently callable PSTN number remains pending purchase.
 
-- 76 automated tests pass locally.
+- 76 automated tests pass locally before the Retell adapter changes.
 - Booking races are enforced by PostgreSQL exclusion constraints.
 - The Cliniko adapter chunks live availability requests into its verified seven-calendar-day limit.
 - Live Cliniko availability and one synthetic patient/appointment write have been contract-verified.
 - HMAC authentication, replay prevention, request limits, and opaque slot tokens are tested.
 - Timeout-after-write reconciliation produces one appointment and never false confirmation.
-- OpenTofu validates the staging/production AWS configuration.
+- OpenTofu validates the staging/production AWS configuration, including the CloudFront HTTPS edge.
 - Twelve multi-turn EN/HI/Hinglish scenarios are versioned under `evals/scenarios/`.
 
 ## Voice platform decision
 
-**Bolna is the provisional implementation target; Retell is the measured fallback.** This is
-not a claim that Bolna is universally better. It is the current clinic-specific choice because
-2care.ai uses Bolna, Bolna supports India-focused multilingual provider combinations and BYOK,
-and its telephony options fit an Indian clinic pilot. Retell currently has the stronger managed
-evaluation and latency tooling.
+**Retell is the implementation platform.** It provides a managed real-time voice stack with
+strict custom-function schemas, explicit tool timeouts, interruption controls, multilingual
+agent locales (`en-IN`, `hi-IN`), an Indian English voice using ElevenLabs Multilingual v2, and
+web-call testing before telephony purchase. The agent uses deterministic `gpt-5.1` tool calling,
+0 temperature, strict mode, 12-second tool deadlines, and high interruption sensitivity.
 
-The choice becomes final only after the same 30-call English/Hindi/Hinglish bake-off runs on
-both platforms. Bolna must pass critical-entity accuracy, exact tool/argument correctness,
-interruption state retention, pure-language drift, p95 latency, telephony reliability, and cost
-per completed conversation. If Bolna misses a hard language or tool gate while Retell passes,
-the project switches to Retell. This evidence-first rule is documented in the
-[research register](docs/research-and-decision-register.md).
+Bolna remains documented as the comparison baseline, not a second live implementation. Retell
+was chosen here because its API lets the project version and reconcile agent, prompt, voice,
+tool schemas, and platform settings after each deployment. The remaining evidence task is a
+30-call English/Hindi/Hinglish bake-off with reported tool accuracy, language drift, interruption
+recovery, component latency, and cost per completed conversation.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Caller["Patient"] --> Tel["Inbound telephony"]
-    Tel --> Voice["Bolna voice agent"]
-    Voice -->|"HMAC HTTPS tools"| ALB["AWS ALB"]
+    Caller["Patient"] --> Tel["Retell web call / inbound telephony"]
+    Tel --> Voice["Retell voice agent"]
+    Voice -->|"HTTPS + platform token"| Edge["CloudFront HTTPS edge"]
+    Edge --> ALB["AWS ALB"]
     ALB --> API["FastAPI on ECS Fargate"]
     API --> DB[("RDS PostgreSQL")]
     API --> PMS["Cliniko / durable mock"]
@@ -91,7 +88,8 @@ uvicorn app.server:app --host 0.0.0.0 --port 8000
 ## Deployment
 
 Terraform-compatible infrastructure is in `infra/terraform`. It defines private Fargate tasks,
-private RDS, ALB, KMS, secret containers, SQS/DLQ, ECR, autoscaling, logs, and alarms. No secret
+private RDS, ALB, CloudFront HTTPS edge, KMS, secret containers, SQS/DLQ, ECR, autoscaling, logs,
+and alarms. No secret
 value is stored in Terraform. Production enables two tasks, Multi-AZ RDS, longer backups, and
 deletion protection. Staging uses one task, private single-AZ RDS, and a public-IP task reachable
 only through the ALB security group to avoid NAT Gateway cost. Production keeps private tasks and

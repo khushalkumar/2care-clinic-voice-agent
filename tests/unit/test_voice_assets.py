@@ -33,6 +33,7 @@ def test_voice_tool_manifest_covers_every_backend_tool() -> None:
     tools = json.loads((ROOT / "integrations/voice/tool-contracts.json").read_text())["tools"]
 
     assert {tool["name"] for tool in tools} == {
+        "clinic_catalog",
         "bootstrap_call",
         "search_availability",
         "book_appointment",
@@ -42,5 +43,6 @@ def test_voice_tool_manifest_covers_every_backend_tool() -> None:
         "save_call_checkpoint",
         "log_follow_up",
     }
-    assert all(tool["method"] == "POST" for tool in tools)
+    assert tools[0]["method"] == "GET"
+    assert all(tool["method"] == "POST" for tool in tools[1:])
     assert all(tool["path"].startswith("/v1/tools/") for tool in tools)

@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from secrets import compare_digest
 from time import perf_counter
 from typing import Any
 from uuid import UUID, uuid4
@@ -30,6 +31,7 @@ from app.observability import log_http_request
 class ApiSettings:
     request_hmac_secret: bytes
     availability_token_secret: bytes
+    retell_tool_token: bytes | None = None
     max_request_bytes: int = 64 * 1024
 
 
@@ -184,6 +186,13 @@ def create_app(
         content_type = request.headers.get("Content-Type", "").split(";", maxsplit=1)[0]
         if request.method in {"POST", "PUT", "PATCH"} and content_type != "application/json":
             return complete(_error("unsupported_media_type", 415))
+        platform_token = request.headers.get("X-2Care-Platform-Token", "").encode()
+        if (
+            request.url.path.startswith("/v1/tools/")
+            and settings.retell_tool_token is not None
+            and compare_digest(platform_token, settings.retell_tool_token)
+        ):
+            return complete(await call_next(request))
         timestamp = request.headers.get("X-2Care-Timestamp")
         event_id = request.headers.get("X-2Care-Event-Id")
         signature = request.headers.get("X-2Care-Signature")
@@ -237,6 +246,38 @@ def create_app(
         except Exception:
             return _error("dependency_unavailable", 503)
         return JSONResponse({"status": "ready"})
+
+    @app.get("/v1/tools/clinic-catalog")
+    async def clinic_catalog() -> dict[str, list[dict[str, Any]]]:
+        businesses = await pms.list_businesses()
+        practitioners = [
+            practitioner
+            for business in businesses
+            for practitioner in await pms.list_practitioners(business.id)
+        ]
+        appointment_types = await pms.list_appointment_types()
+        return {
+            "businesses": [
+                {"id": business.id, "name": business.name, "timezone": business.timezone}
+                for business in businesses
+            ],
+            "practitioners": [
+                {
+                    "id": practitioner.id,
+                    "business_id": practitioner.business_id,
+                    "name": practitioner.name,
+                }
+                for practitioner in practitioners
+            ],
+            "appointment_types": [
+                {
+                    "id": appointment_type.id,
+                    "name": appointment_type.name,
+                    "duration_minutes": appointment_type.duration_minutes,
+                }
+                for appointment_type in appointment_types
+            ],
+        }
 
     @app.post("/v1/tools/search-availability")
     async def search_availability(payload: SearchAvailabilityRequest) -> dict[str, Any]:

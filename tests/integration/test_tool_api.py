@@ -217,3 +217,79 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def test_retell_platform_token_can_call_voice_tools(migrated_database_url: str) -> None:
+    engine = create_async_engine(migrated_database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    await seed_mock_pms(sessions)
+    app = create_app(
+        ApiSettings(
+            request_hmac_secret=b"h" * 32,
+            availability_token_secret=b"t" * 32,
+            retell_tool_token=b"r" * 32,
+        ),
+        session_factory=sessions,
+        pms=MockPmsGateway(sessions),
+    )
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+    try:
+        response = await client.post(
+            "/v1/tools/search-availability",
+            headers={"X-2Care-Platform-Token": "r" * 32},
+            json={
+                "call_id": "retell-call-1",
+                "business_id": "jayanagar",
+                "practitioner_ids": ["nadia-zainab"],
+                "appointment_type_id": "initial-consultation",
+                "starts_at": "2026-07-20T03:30:00Z",
+                "ends_at": "2026-07-20T07:30:00Z",
+            },
+        )
+
+        assert response.status_code == 200, response.text
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_retell_platform_token_can_read_clinic_catalog(migrated_database_url: str) -> None:
+    engine = create_async_engine(migrated_database_url)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    await seed_mock_pms(sessions)
+    app = create_app(
+        ApiSettings(
+            request_hmac_secret=b"h" * 32,
+            availability_token_secret=b"t" * 32,
+            retell_tool_token=b"r" * 32,
+        ),
+        session_factory=sessions,
+        pms=MockPmsGateway(sessions),
+    )
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+    try:
+        response = await client.get(
+            "/v1/tools/clinic-catalog",
+            headers={"X-2Care-Platform-Token": "r" * 32},
+        )
+
+        assert response.status_code == 200, response.text
+        assert response.json()["businesses"] == [
+            {
+                "id": "indiranagar",
+                "name": "Physiotattva Indiranagar",
+                "timezone": "Asia/Kolkata",
+            },
+            {
+                "id": "jayanagar",
+                "name": "Physiotattva Jayanagar",
+                "timezone": "Asia/Kolkata",
+            },
+        ]
+        assert {item["name"] for item in response.json()["appointment_types"]} == {
+            "Follow-up",
+            "Initial consultation",
+        }
+    finally:
+        await client.aclose()
+        await engine.dispose()

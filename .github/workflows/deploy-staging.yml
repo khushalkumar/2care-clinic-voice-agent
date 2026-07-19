@@ -90,8 +90,10 @@ jobs:
           CLINIKO_SHARD: ${{ secrets.CLINIKO_SHARD }}
           CLINIKO_USER_AGENT: ${{ secrets.CLINIKO_USER_AGENT }}
           CLINIKO_PATIENT_IDS_BY_PHONE_JSON: ${{ secrets.CLINIKO_PATIENT_IDS_BY_PHONE_JSON }}
+          RETELL_TOOL_TOKEN: ${{ secrets.RETELL_TOOL_TOKEN }}
         working-directory: infra/terraform
         run: |
+          : "${RETELL_TOOL_TOKEN:?RETELL_TOOL_TOKEN must be configured as a GitHub Actions secret}"
           APP_SECRET_ARN="$(tofu output -raw application_secret_arn)"
           REQUEST_HMAC_SECRET="$(openssl rand -hex 32)"
           AVAILABILITY_TOKEN_SECRET="$(openssl rand -hex 32)"
@@ -102,13 +104,15 @@ jobs:
             --arg cliniko_shard "$CLINIKO_SHARD" \
             --arg cliniko_user_agent "$CLINIKO_USER_AGENT" \
             --arg patient_ids "$CLINIKO_PATIENT_IDS_BY_PHONE_JSON" \
+            --arg retell_tool_token "$RETELL_TOOL_TOKEN" \
             '{
               REQUEST_HMAC_SECRET: $request_hmac,
               AVAILABILITY_TOKEN_SECRET: $availability_token,
               CLINIKO_API_KEY: $cliniko_api_key,
               CLINIKO_SHARD: $cliniko_shard,
               CLINIKO_USER_AGENT: $cliniko_user_agent,
-              CLINIKO_PATIENT_IDS_BY_PHONE_JSON: $patient_ids
+              CLINIKO_PATIENT_IDS_BY_PHONE_JSON: $patient_ids,
+              RETELL_TOOL_TOKEN: $retell_tool_token
             }' > application-secret.json
           aws secretsmanager put-secret-value \
             --secret-id "$APP_SECRET_ARN" \
@@ -122,3 +126,13 @@ jobs:
             -var="environment=${ENVIRONMENT}" \
             -var="pms_provider=${PMS_PROVIDER}" \
             -var="container_image=${{ steps.image.outputs.uri }}"
+
+      - name: Configure Retell staging agent
+        env:
+          RETELL_API_KEY: ${{ secrets.RETELL_API_KEY }}
+          RETELL_TOOL_TOKEN: ${{ secrets.RETELL_TOOL_TOKEN }}
+        run: |
+          : "${RETELL_API_KEY:?RETELL_API_KEY must be configured as a GitHub Actions secret}"
+          BACKEND_URL="$(cd infra/terraform && tofu output -raw api_base_url)"
+          export BACKEND_URL
+          node scripts/provision_retell_agent.mjs
