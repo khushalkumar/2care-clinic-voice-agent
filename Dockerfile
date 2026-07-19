@@ -1,4 +1,4 @@
-FROM python:3.11.13-slim-bookworm AS builder
+FROM python:3.11.14-slim-bookworm AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
@@ -8,7 +8,7 @@ COPY pyproject.toml README.md ./
 COPY app ./app
 RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir .
 
-FROM python:3.11.13-slim-bookworm AS runtime
+FROM python:3.11.14-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
