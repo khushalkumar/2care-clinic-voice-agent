@@ -32,7 +32,7 @@ jobs:
           printf 'AWS secret key length: %s\n' "${#AWS_SECRET_ACCESS_KEY}"
           aws sts get-caller-identity --region "$AWS_REGION"
 
-      - uses: opentofu/setup-opentofu@v1
+      - uses: opentofu/setup-opentofu@v2
         with:
           tofu_version: 1.12.4
 
