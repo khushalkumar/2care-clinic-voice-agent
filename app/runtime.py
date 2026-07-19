@@ -138,6 +138,7 @@ def build_runtime_app(settings: RuntimeSettings) -> FastAPI:
         ApiSettings(
             request_hmac_secret=settings.request_hmac_secret,
             availability_token_secret=settings.availability_token_secret,
+            retell_tool_token=settings.retell_tool_token,
         ),
         session_factory=sessions,
         pms=pms,

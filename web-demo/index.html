@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Physiotattva Voice Test</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center;
+        background: #f5f7fb; color: #172033; }
+      main { width: min(440px, calc(100% - 32px)); text-align: center; }
+      h1 { margin: 0; font-size: 28px; font-weight: 650; }
+      p { margin: 8px 0 28px; color: #5a6578; }
+      button { width: 132px; height: 132px; border: 0; border-radius: 50%;
+        background: #007ea7; color: white; font: inherit; font-weight: 700;
+        cursor: pointer; box-shadow: 0 12px 28px #007ea744; }
+      button:disabled { background: #a5acb9; box-shadow: none; cursor: wait; }
+      #status { min-height: 24px; margin-top: 28px; font-weight: 600; }
+      #hint { min-height: 40px; margin: 8px auto 0; max-width: 360px;
+        color: #5a6578; line-height: 1.45; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Physiotattva Voice Test</h1>
+      <p>English | Hindi | Hinglish</p>
+      <button id="call" type="button" disabled>Connecting</button>
+      <div id="status" role="status">Preparing secure call</div>
+      <div id="hint"></div>
+    </main>
+    <script type="module">
+      import { RetellWebClient } from "https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.8/+esm";
+
+      const button = document.querySelector("#call");
+      const status = document.querySelector("#status");
+      const hint = document.querySelector("#hint");
+      const accessToken = new URLSearchParams(window.location.hash.slice(1)).get("access_token");
+      let client;
+
+      function setState(label, disabled = false) {
+        button.textContent = label;
+        button.disabled = disabled;
+      }
+
+      if (!accessToken) {
+        status.textContent = "A short-lived web-call token is required.";
+        hint.textContent = "Generate a URL with scripts/create_retell_web_call.mjs.";
+      } else {
+        client = new RetellWebClient();
+        setState("Start call");
+        status.textContent = "Ready";
+        client.on("call_started", () => {
+          setState("End call");
+          status.textContent = "Connected";
+        });
+        client.on("call_ready", () => { status.textContent = "Assistant ready"; });
+        client.on("agent_start_talking", () => { status.textContent = "Assistant speaking"; });
+        client.on("agent_stop_talking", () => { status.textContent = "Listening"; });
+        client.on("call_ended", () => {
+          setState("Call ended", true);
+          status.textContent = "Call ended";
+        });
+        client.on("error", () => {
+          setState("Unavailable", true);
+          status.textContent = "Unable to connect";
+          hint.textContent = "Generate a new web-call URL and allow microphone access.";
+        });
+        button.addEventListener("click", async () => {
+          if (client.isAgentTalking || button.textContent === "End call") {
+            client.stopCall();
+            return;
+          }
+          setState("Connecting", true);
+          status.textContent = "Requesting microphone";
+          try {
+            await client.startCall({ accessToken });
+          } catch (_) {
+            setState("Unavailable", true);
+            status.textContent = "Unable to connect";
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

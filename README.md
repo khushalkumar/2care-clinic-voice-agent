@@ -9,10 +9,10 @@ PMS failure handling.
 
 The backend is live in AWS staging behind an ALB, backed by RDS PostgreSQL and Cliniko.
 The deployment has passed `/live` and dependency-aware `/ready` checks. Retell agent provisioning
-is versioned in this repository and runs after each staging deployment. A web-call test is the
-current live voice entry point; an independently callable PSTN number remains pending purchase.
+is versioned in this repository and runs after each staging deployment. The HTTPS web-call test is
+published through GitHub Pages; an independently callable PSTN number remains pending purchase.
 
-- 76 automated tests pass locally before the Retell adapter changes.
+- The test suite covers the API, booking state, calls, recovery, and voice assets.
 - Booking races are enforced by PostgreSQL exclusion constraints.
 - The Cliniko adapter chunks live availability requests into its verified seven-calendar-day limit.
 - Live Cliniko availability and one synthetic patient/appointment write have been contract-verified.
@@ -34,6 +34,25 @@ was chosen here because its API lets the project version and reconcile agent, pr
 tool schemas, and platform settings after each deployment. The remaining evidence task is a
 30-call English/Hindi/Hinglish bake-off with reported tool accuracy, language drift, interruption
 recovery, component latency, and cost per completed conversation.
+
+## Live voice test
+
+The browser client is hosted at
+[`https://khushalkumar.github.io/2care-clinic-voice-agent/`](https://khushalkumar.github.io/2care-clinic-voice-agent/).
+It contains no secret and accepts a short-lived Retell access token only in the URL fragment, which
+the browser does not send to GitHub Pages. Generate a one-use call URL locally with a Retell API key
+and the staging agent ID from the Retell dashboard:
+
+```bash
+export RETELL_API_KEY='...'
+export RETELL_AGENT_ID='agent_...'
+export DEMO_URL='https://khushalkumar.github.io/2care-clinic-voice-agent/'
+node scripts/create_retell_web_call.mjs
+```
+
+Open the emitted `demo_url` directly, permit microphone access, and test a booking conversation in
+English, Hindi, and Hinglish. Do not store or share the generated URL: it includes a short-lived
+web-call access token.
 
 ## Architecture
 

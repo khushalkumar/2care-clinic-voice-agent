@@ -46,3 +46,11 @@ def test_voice_tool_manifest_covers_every_backend_tool() -> None:
     assert tools[0]["method"] == "GET"
     assert all(tool["method"] == "POST" for tool in tools[1:])
     assert all(tool["path"].startswith("/v1/tools/") for tool in tools)
+
+
+def test_hosted_voice_demo_uses_retell_web_sdk_without_an_embedded_secret() -> None:
+    page = (ROOT / "web-demo/index.html").read_text()
+
+    assert "RetellWebClient" in page
+    assert "access_token" in page
+    assert "RETELL_API_KEY" not in page

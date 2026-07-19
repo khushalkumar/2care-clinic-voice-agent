@@ -1,5 +1,9 @@
+from typing import cast
+
 import pytest
 
+import app.runtime as runtime
+from app.api.app import ApiSettings
 from app.runtime import RuntimeSettings, build_runtime_app
 
 
@@ -76,3 +80,19 @@ def test_ecs_database_fields_build_an_encrypted_url() -> None:
         "postgresql+asyncpg://voice_agent_admin:p%40ss+word@"
         "database.internal:5432/voice_agent?ssl=require"
     )
+
+
+def test_runtime_wires_retell_tool_token_into_api_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def capture_create_app(settings: object, **_: object) -> object:
+        captured["settings"] = settings
+        return object()
+
+    monkeypatch.setattr(runtime, "create_app", capture_create_app)
+    settings = RuntimeSettings.from_mapping(_environment() | {"RETELL_TOOL_TOKEN": "r" * 32})
+
+    runtime.build_runtime_app(settings)
+
+    api_settings = cast(ApiSettings, captured["settings"])
+    assert api_settings.retell_tool_token == b"r" * 32
