@@ -1,14 +1,18 @@
-FROM python:3.11.14-slim-bookworm AS builder
+FROM python:3.11.14-slim-trixie AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /build
 
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
 COPY pyproject.toml README.md ./
 COPY app ./app
-RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir .
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && /opt/venv/bin/pip install --no-cache-dir .
 
-FROM python:3.11.14-slim-bookworm AS runtime
+FROM python:3.11.14-slim-trixie AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -16,6 +20,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
 
 WORKDIR /app
+
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /nonexistent app
