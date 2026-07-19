@@ -15,13 +15,14 @@ env:
   ENVIRONMENT: staging
   PMS_PROVIDER: cliniko
   TF_STATE_BUCKET: 2care-voice-tfstate-519570322025
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEPLOY_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEPLOY_SECRET_ACCESS_KEY }}
 
 jobs:
   deploy:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEPLOY_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEPLOY_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@v4
 
