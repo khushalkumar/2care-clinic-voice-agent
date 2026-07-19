@@ -31,8 +31,9 @@ web-call testing before telephony purchase. The agent uses deterministic `gpt-5.
 
 Bolna remains documented as the comparison baseline, not a second live implementation. Retell
 was chosen here because its API lets the project version and reconcile agent, prompt, voice,
-tool schemas, and platform settings after each deployment. The remaining evidence task is a
-30-call English/Hindi/Hinglish bake-off with reported tool accuracy, language drift, interruption
+tool schemas, and platform settings after each deployment. Real-call results are intentionally
+not claimed until the 30-call English/Hindi/Hinglish bake-off has been run using the
+[evaluation protocol](docs/evaluation.md). It reports tool accuracy, language drift, interruption
 recovery, component latency, and cost per completed conversation.
 
 ## Live voice test
@@ -123,6 +124,7 @@ the user explicitly approves billable resources. See [deployment runbook](docs/r
 - [Implementation specification](docs/implementation-spec.md)
 - [Production implementation plan](docs/implementation-plan.md)
 - [Architecture](docs/architecture.md)
+- [Voice evaluation protocol](docs/evaluation.md)
 - [Clinic/PMS decision](docs/decisions/0001-clinic-and-pms.md)
 - [AWS decision](docs/decisions/0002-production-aws.md)
 - [Booking persistence decision](docs/decisions/0004-booking-persistence.md)

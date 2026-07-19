@@ -81,7 +81,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: string,
+        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
         business_id: string,
         practitioner_ids: { type: "array", items: string },
         appointment_type_id: string,
@@ -105,7 +105,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: string,
+        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
         patient_id: string,
         full_name: string,
         availability_token: string,
@@ -118,7 +118,14 @@ const tools = [
     "list_patient_appointments",
     "List only the selected caller's appointments before a reschedule or cancellation.",
     "/v1/tools/list-patient-appointments",
-    { type: "object", properties: { call_id: string, patient_id: string }, required: ["call_id", "patient_id"] },
+    {
+      type: "object",
+      properties: {
+        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        patient_id: string,
+      },
+      required: ["call_id", "patient_id"],
+    },
   ),
   customTool(
     "reschedule_appointment",
@@ -126,7 +133,13 @@ const tools = [
     "/v1/tools/reschedule-appointment",
     {
       type: "object",
-      properties: { call_id: string, appointment_id: string, starts_at: string, ends_at: string, idempotency_key: string },
+      properties: {
+        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        appointment_id: string,
+        starts_at: string,
+        ends_at: string,
+        idempotency_key: string,
+      },
       required: ["call_id", "appointment_id", "starts_at", "ends_at", "idempotency_key"],
     },
   ),
@@ -134,7 +147,15 @@ const tools = [
     "cancel_appointment",
     "Cancel one selected appointment after caller confirmation.",
     "/v1/tools/cancel-appointment",
-    { type: "object", properties: { call_id: string, appointment_id: string, idempotency_key: string }, required: ["call_id", "appointment_id", "idempotency_key"] },
+    {
+      type: "object",
+      properties: {
+        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        appointment_id: string,
+        idempotency_key: string,
+      },
+      required: ["call_id", "appointment_id", "idempotency_key"],
+    },
   ),
   customTool(
     "save_call_checkpoint",

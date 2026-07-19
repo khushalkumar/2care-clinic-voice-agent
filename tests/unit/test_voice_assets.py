@@ -54,3 +54,11 @@ def test_hosted_voice_demo_uses_retell_web_sdk_without_an_embedded_secret() -> N
     assert "RetellWebClient" in page
     assert "access_token" in page
     assert "RETELL_API_KEY" not in page
+
+
+def test_retell_tools_bind_mutations_to_the_platform_call_id() -> None:
+    provisioner = (ROOT / "scripts/provision_retell_agent.mjs").read_text()
+    prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
+
+    assert provisioner.count('description: "Use {{platform_call_id}} exactly."') >= 6
+    assert "Use `{{platform_call_id}}` for every `call_id` argument." in prompt

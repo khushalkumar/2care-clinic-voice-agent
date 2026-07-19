@@ -114,6 +114,51 @@
         {"speaker": "caller", "text": "Yes book the earliest, full name Meera Sharma."}
       ],
       "expected_tools": ["search-availability", "book-appointment"]
+    },
+    {
+      "id": "natural_time_december_13",
+      "language": "en",
+      "turns": [
+        {"speaker": "caller", "text": "Do you have anything on December 13 around 1?"},
+        {"speaker": "caller", "text": "Jayanagar is fine. Please book the closest available time; my full name is Aarav Sharma."}
+      ],
+      "expected_tools": ["search-availability", "book-appointment"]
+    },
+    {
+      "id": "recurring_mondays_wednesdays",
+      "language": "en",
+      "turns": [
+        {"speaker": "caller", "text": "Mondays and Wednesdays work well for me."},
+        {"speaker": "caller", "text": "Any branch is fine, and my full name is Meera Sharma."}
+      ],
+      "expected_tools": ["search-availability", "book-appointment"]
+    },
+    {
+      "id": "after_work_around_430",
+      "language": "en",
+      "turns": [
+        {"speaker": "caller", "text": "In the afternoon after I get off work, around 4:30."},
+        {"speaker": "caller", "text": "Indiranagar works. My full name is Aarav Sharma."}
+      ],
+      "expected_tools": ["search-availability", "book-appointment"]
+    },
+    {
+      "id": "thursday_morning",
+      "language": "hi",
+      "turns": [
+        {"speaker": "caller", "text": "कोई भी गुरुवार सुबह का समय ठीक रहेगा।"},
+        {"speaker": "caller", "text": "जयनगर में बुक कर दीजिए, मेरा पूरा नाम मीरा शर्मा है।"}
+      ],
+      "expected_tools": ["search-availability", "book-appointment"]
+    },
+    {
+      "id": "branch_specialty_triage",
+      "language": "hinglish",
+      "turns": [
+        {"speaker": "caller", "text": "Indiranagar mein physiotherapy consultation ka earliest slot chahiye."},
+        {"speaker": "caller", "text": "Same branch confirm karke book karo, mera full name Aarav Sharma hai."}
+      ],
+      "expected_tools": ["clinic-catalog", "search-availability", "book-appointment"]
     }
   ]
 }
