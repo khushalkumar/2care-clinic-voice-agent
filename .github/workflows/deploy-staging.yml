@@ -60,7 +60,9 @@ jobs:
             -backend-config="region=${AWS_REGION}" \
             -backend-config="encrypt=true"
           if ! tofu state show aws_ecr_repository.app >/dev/null 2>&1; then
-            tofu import aws_ecr_repository.app 2care-clinic-voice-agent
+            tofu import \
+              -var="container_image=placeholder.invalid/2care-clinic-voice-agent:${GITHUB_SHA}" \
+              aws_ecr_repository.app 2care-clinic-voice-agent
           fi
           tofu apply -auto-approve \
             -target=aws_kms_key.main \
