@@ -101,7 +101,7 @@ jobs:
             --arg cliniko_api_key "$CLINIKO_API_KEY" \
             --arg cliniko_shard "$CLINIKO_SHARD" \
             --arg cliniko_user_agent "$CLINIKO_USER_AGENT" \
-            --argjson patient_ids "$CLINIKO_PATIENT_IDS_BY_PHONE_JSON" \
+            --arg patient_ids "$CLINIKO_PATIENT_IDS_BY_PHONE_JSON" \
             '{
               REQUEST_HMAC_SECRET: $request_hmac,
               AVAILABILITY_TOKEN_SECRET: $availability_token,
