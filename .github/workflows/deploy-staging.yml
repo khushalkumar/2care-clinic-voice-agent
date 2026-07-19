@@ -56,6 +56,9 @@ jobs:
             -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
             -backend-config="region=${AWS_REGION}" \
             -backend-config="encrypt=true"
+          if ! tofu state show aws_ecr_repository.app >/dev/null 2>&1; then
+            tofu import aws_ecr_repository.app 2care-clinic-voice-agent
+          fi
           tofu apply -auto-approve \
             -target=aws_kms_key.main \
             -target=aws_kms_alias.main \
