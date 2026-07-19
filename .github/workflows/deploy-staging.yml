@@ -26,7 +26,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Verify temporary deployment credentials
-        run: aws sts get-caller-identity --region "$AWS_REGION"
+        run: |
+          printf 'AWS access key length: %s\n' "${#AWS_ACCESS_KEY_ID}"
+          printf 'AWS secret key length: %s\n' "${#AWS_SECRET_ACCESS_KEY}"
+          aws sts get-caller-identity --region "$AWS_REGION"
 
       - uses: opentofu/setup-opentofu@v1
         with:
