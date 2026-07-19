@@ -1,0 +1,117 @@
+name: Deploy staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  ENVIRONMENT: staging
+  PMS_PROVIDER: cliniko
+  TF_STATE_BUCKET: 2care-voice-tfstate-519570322025
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.12.4
+
+      - name: Create protected Terraform state bucket
+        run: |
+          aws s3api head-bucket --bucket "$TF_STATE_BUCKET" 2>/dev/null || \
+            aws s3api create-bucket \
+              --bucket "$TF_STATE_BUCKET" \
+              --region "$AWS_REGION" \
+              --create-bucket-configuration LocationConstraint="$AWS_REGION"
+          aws s3api put-bucket-versioning \
+            --bucket "$TF_STATE_BUCKET" \
+            --versioning-configuration Status=Enabled
+          aws s3api put-public-access-block \
+            --bucket "$TF_STATE_BUCKET" \
+            --public-access-block-configuration \
+              BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+
+      - name: Bootstrap repository and application secret container
+        working-directory: infra/terraform
+        run: |
+          tofu init \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
+            -backend-config="region=${AWS_REGION}" \
+            -backend-config="encrypt=true"
+          tofu apply -auto-approve \
+            -target=aws_kms_key.main \
+            -target=aws_kms_alias.main \
+            -target=aws_ecr_repository.app \
+            -target=aws_secretsmanager_secret.application \
+            -var="container_image=placeholder.invalid/2care-clinic-voice-agent:${GITHUB_SHA}"
+
+      - name: Build and publish immutable image
+        id: image
+        env:
+          ECR_REGISTRY: 519570322025.dkr.ecr.ap-south-1.amazonaws.com
+          ECR_REPOSITORY: 2care-clinic-voice-agent
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" | \
+            docker login --username AWS --password-stdin "$ECR_REGISTRY"
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          docker build --tag "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+          echo "uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Populate application secret out of Terraform state
+        env:
+          CLINIKO_API_KEY: ${{ secrets.CLINIKO_API_KEY }}
+          CLINIKO_SHARD: ${{ secrets.CLINIKO_SHARD }}
+          CLINIKO_USER_AGENT: ${{ secrets.CLINIKO_USER_AGENT }}
+          CLINIKO_PATIENT_IDS_BY_PHONE_JSON: ${{ secrets.CLINIKO_PATIENT_IDS_BY_PHONE_JSON }}
+        working-directory: infra/terraform
+        run: |
+          APP_SECRET_ARN="$(tofu output -raw application_secret_arn)"
+          REQUEST_HMAC_SECRET="$(openssl rand -hex 32)"
+          AVAILABILITY_TOKEN_SECRET="$(openssl rand -hex 32)"
+          jq -cn \
+            --arg request_hmac "$REQUEST_HMAC_SECRET" \
+            --arg availability_token "$AVAILABILITY_TOKEN_SECRET" \
+            --arg cliniko_api_key "$CLINIKO_API_KEY" \
+            --arg cliniko_shard "$CLINIKO_SHARD" \
+            --arg cliniko_user_agent "$CLINIKO_USER_AGENT" \
+            --argjson patient_ids "$CLINIKO_PATIENT_IDS_BY_PHONE_JSON" \
+            '{
+              REQUEST_HMAC_SECRET: $request_hmac,
+              AVAILABILITY_TOKEN_SECRET: $availability_token,
+              CLINIKO_API_KEY: $cliniko_api_key,
+              CLINIKO_SHARD: $cliniko_shard,
+              CLINIKO_USER_AGENT: $cliniko_user_agent,
+              CLINIKO_PATIENT_IDS_BY_PHONE_JSON: $patient_ids
+            }' > application-secret.json
+          aws secretsmanager put-secret-value \
+            --secret-id "$APP_SECRET_ARN" \
+            --secret-string file://application-secret.json
+          rm application-secret.json
+
+      - name: Apply staging infrastructure
+        working-directory: infra/terraform
+        run: |
+          tofu apply -auto-approve \
+            -var="environment=${ENVIRONMENT}" \
+            -var="pms_provider=${PMS_PROVIDER}" \
+            -var="container_image=${{ steps.image.outputs.uri }}"
