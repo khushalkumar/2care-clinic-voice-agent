@@ -125,6 +125,7 @@ the user explicitly approves billable resources. See [deployment runbook](docs/r
 - [Production implementation plan](docs/implementation-plan.md)
 - [Architecture](docs/architecture.md)
 - [Voice evaluation protocol](docs/evaluation.md)
+- [Submission checklist](docs/submission-checklist.md)
 - [Clinic/PMS decision](docs/decisions/0001-clinic-and-pms.md)
 - [AWS decision](docs/decisions/0002-production-aws.md)
 - [Booking persistence decision](docs/decisions/0004-booking-persistence.md)
