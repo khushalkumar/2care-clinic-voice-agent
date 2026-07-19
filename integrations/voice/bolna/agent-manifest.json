@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "platform": "bolna",
+  "selection_status": "provisional_pending_measured_bakeoff",
+  "deployment_status": "blocked_aws_account_verification_and_telephony",
+  "agent_name": "2care-physiotattva-receptionist",
+  "languages": ["en-IN", "hi-IN", "hinglish"],
+  "api": {
+    "create_agent": "POST /v2/agent",
+    "official_documentation": "https://docs.bolna.ai/api-reference/agent/v2/create",
+    "verified_on": "2026-07-18",
+    "captured_export": null
+  },
+  "providers": {
+    "transcriber": "TBD_AFTER_BAKEOFF",
+    "language_model": "TBD_AFTER_BAKEOFF",
+    "synthesizer": "TBD_AFTER_BAKEOFF",
+    "telephony": "TBD_AFTER_BAKEOFF"
+  },
+  "behavior": {
+    "prompt": "prompt.md",
+    "tools": "../tool-contracts.json",
+    "timezone": "Asia/Kolkata",
+    "max_offered_slots": 3,
+    "interruption_enabled": true,
+    "single_holding_phrase_per_tool_call": true
+  },
+  "credential_gate": [
+    "BOLNA_API_KEY",
+    "public HTTPS backend URL",
+    "HMAC tool secret configured as a platform header",
+    "inbound phone number or approved telephony account"
+  ]
+}

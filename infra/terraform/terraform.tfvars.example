@@ -1,0 +1,6 @@
+environment     = "staging"
+aws_region      = "ap-south-1"
+container_image = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/2care-clinic-voice-agent:COMMIT_SHA"
+pms_provider    = "mock"
+certificate_arn = null
+alert_email     = null

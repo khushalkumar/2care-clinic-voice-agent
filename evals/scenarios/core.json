@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "id": "returning_shared_phone",
+      "language": "en",
+      "turns": [
+        {"speaker": "caller", "text": "I need to book a physiotherapy appointment."},
+        {"speaker": "caller", "text": "This number is shared. My full name is Aarav Sharma."},
+        {"speaker": "caller", "text": "Jayanagar tomorrow morning works."}
+      ],
+      "expected_tools": ["bootstrap-call", "search-availability", "book-appointment"]
+    },
+    {
+      "id": "cross_branch_earliest",
+      "language": "en",
+      "turns": [
+        {"speaker": "caller", "text": "Find me the earliest appointment at either branch."},
+        {"speaker": "caller", "text": "Any practitioner is fine."},
+        {"speaker": "caller", "text": "Book the first one. My full name is Meera Sharma."}
+      ],
+      "expected_tools": ["search-availability", "book-appointment"]
+    },
+    {
+      "id": "slot_race",
+      "language": "en",
+      "turns": [
+        {"speaker": "caller", "text": "I will take the 10 AM slot."},
+        {"speaker": "caller", "text": "Yes, please try the next available time instead."}
+      ],
+      "expected_tools": ["book-appointment", "search-availability", "book-appointment"]
+    },
+    {
+      "id": "missed_callback",
+      "language": "en",
+      "turns": [
+        {"speaker": "caller", "text": "I missed a call from this clinic."},
+        {"speaker": "caller", "text": "Yes, continue with the follow-up appointment."}
+      ],
+      "expected_tools": ["bootstrap-call", "search-availability"]
+    },
+    {
+      "id": "reschedule",
+      "language": "hi",
+      "turns": [
+        {"speaker": "caller", "text": "मेरा कल का अपॉइंटमेंट बदलना है।"},
+        {"speaker": "caller", "text": "शाम पांच बजे के बाद कोई समय देखिए।"},
+        {"speaker": "caller", "text": "हां, छह बजे वाला कर दीजिए।"}
+      ],
+      "expected_tools": ["list-patient-appointments", "search-availability", "reschedule-appointment"]
+    },
+    {
+      "id": "cancel",
+      "language": "hi",
+      "turns": [
+        {"speaker": "caller", "text": "मुझे अपना अपॉइंटमेंट रद्द करना है।"},
+        {"speaker": "caller", "text": "सोमवार वाला अपॉइंटमेंट।"},
+        {"speaker": "caller", "text": "जी, रद्द कर दीजिए।"}
+      ],
+      "expected_tools": ["list-patient-appointments", "cancel-appointment"]
+    },
+    {
+      "id": "dropped_call",
+      "language": "hi",
+      "turns": [
+        {"speaker": "caller", "text": "पिछली कॉल कट गई थी, मैं बुकिंग कर रहा था।"},
+        {"speaker": "caller", "text": "हां, जयनगर ही चाहिए, नया समय बताइए।"}
+      ],
+      "expected_tools": ["bootstrap-call", "search-availability"]
+    },
+    {
+      "id": "clinical_followup",
+      "language": "hi",
+      "turns": [
+        {"speaker": "caller", "text": "मेरे घुटने में बहुत दर्द है, कौन सी दवा लूं?"},
+        {"speaker": "caller", "text": "ठीक है, क्लिनिक से मुझे वापस कॉल करवा दीजिए।"}
+      ],
+      "expected_tools": ["bootstrap-call", "log-follow-up"]
+    },
+    {
+      "id": "mid_call_code_switch",
+      "language": "hinglish",
+      "turns": [
+        {"speaker": "caller", "text": "I need an appointment kal morning mein."},
+        {"speaker": "caller", "text": "Indiranagar is fine, but earliest slot bata do."},
+        {"speaker": "caller", "text": "Book it, mera full name Aarav Sharma hai."}
+      ],
+      "expected_tools": ["search-availability", "book-appointment"]
+    },
+    {
+      "id": "new_patient_hinglish",
+      "language": "hinglish",
+      "turns": [
+        {"speaker": "caller", "text": "First time patient hoon, consultation book karni hai."},
+        {"speaker": "caller", "text": "My full name is Riya Verma and Jayanagar better hai."}
+      ],
+      "expected_tools": ["bootstrap-call", "search-availability", "book-appointment"]
+    },
+    {
+      "id": "human_request_hinglish",
+      "language": "hinglish",
+      "turns": [
+        {"speaker": "caller", "text": "Can I speak to a human?"},
+        {"speaker": "caller", "text": "Abhi transfer nahi ho sakta toh callback arrange kar do."}
+      ],
+      "expected_tools": ["bootstrap-call", "log-follow-up"]
+    },
+    {
+      "id": "interrupted_booking_hinglish",
+      "language": "hinglish",
+      "turns": [
+        {"speaker": "caller", "text": "Tuesday at... sorry, Wednesday morning chahiye."},
+        {"speaker": "caller", "text": "Jayanagar, any doctor is okay."},
+        {"speaker": "caller", "text": "Yes book the earliest, full name Meera Sharma."}
+      ],
+      "expected_tools": ["search-availability", "book-appointment"]
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "clinic": {
+    "name": {
+      "value": "Physiotattva",
+      "provenance": "sourced",
+      "source_url": "https://physiotattva.com/",
+      "retrieved_on": "2026-07-18"
+    },
+    "timezone": {
+      "value": "Asia/Kolkata",
+      "provenance": "derived"
+    },
+    "currency": {
+      "value": "INR",
+      "provenance": "derived"
+    }
+  },
+  "branches": [
+    {
+      "key": "jayanagar",
+      "name": {
+        "value": "Physiotattva - Jayanagar Demo",
+        "provenance": "sourced",
+        "source_url": "https://physiotattva.com/physiotherapy-clinic/physiotattva-jayanagar",
+        "retrieved_on": "2026-07-18"
+      },
+      "address": {
+        "value": "75, 8th Main Road, Jaya Nagar 1st Block, Bengaluru, Karnataka 560011",
+        "provenance": "sourced",
+        "source_url": "https://physiotattva.com/physiotherapy-clinic/physiotattva-jayanagar",
+        "retrieved_on": "2026-07-18"
+      },
+      "practitioners": [
+        {
+          "value": "Dr Nadia Zainab (PT)",
+          "provenance": "sourced",
+          "source_url": "https://physiotattva.com/bangalore/jayanagar",
+          "retrieved_on": "2026-07-18"
+        },
+        {
+          "value": "Dr Sai Shweta B (PT)",
+          "provenance": "sourced",
+          "source_url": "https://physiotattva.com/bangalore/jayanagar",
+          "retrieved_on": "2026-07-18"
+        }
+      ]
+    },
+    {
+      "key": "indiranagar",
+      "name": {
+        "value": "Physiotattva - Indiranagar Demo",
+        "provenance": "sourced",
+        "source_url": "https://physiotattva.com/physiotherapy-clinic/physiotattva-indiranagar",
+        "retrieved_on": "2026-07-18"
+      },
+      "address": {
+        "value": "1st Floor, 3478/A, 14th Main Road, HAL 2nd Stage, Bengaluru, Karnataka 560038",
+        "provenance": "sourced",
+        "source_url": "https://physiotattva.com/physiotherapy-clinic/physiotattva-indiranagar",
+        "retrieved_on": "2026-07-18"
+      },
+      "practitioners": [
+        {
+          "value": "Dr Manjiri Arvind (PT)",
+          "provenance": "sourced",
+          "source_url": "https://physiotattva.com/bangalore/indiranagar",
+          "retrieved_on": "2026-07-18"
+        },
+        {
+          "value": "Dr Silki Gupta (PT)",
+          "provenance": "sourced",
+          "source_url": "https://physiotattva.com/bangalore/indiranagar",
+          "retrieved_on": "2026-07-18"
+        }
+      ]
+    }
+  ],
+  "services": {
+    "value": [
+      "musculoskeletal physiotherapy",
+      "neuro physiotherapy",
+      "sports injury physiotherapy",
+      "geriatric physiotherapy",
+      "pediatric physiotherapy",
+      "vestibular rehabilitation",
+      "post-surgical rehabilitation",
+      "women's health physiotherapy"
+    ],
+    "provenance": "sourced",
+    "source_url": "https://physiotattva.com/physiotherapy-clinic/physiotattva-jayanagar",
+    "retrieved_on": "2026-07-18"
+  },
+  "operational_data": {
+    "availability_schedules": {
+      "value": "Defined in demo_clinic configuration and created in the Cliniko trial",
+      "provenance": "synthetic"
+    },
+    "patients": {
+      "value": "Synthetic scenario fixtures only",
+      "provenance": "synthetic"
+    },
+    "appointments": {
+      "value": "Synthetic scenario fixtures only",
+      "provenance": "synthetic"
+    }
+  }
+}
