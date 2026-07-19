@@ -240,7 +240,7 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids        = [aws_security_group.database.id]
   publicly_accessible           = false
   multi_az                      = local.production
-  backup_retention_period       = local.production ? 14 : 3
+  backup_retention_period       = local.production ? 14 : 1
   deletion_protection           = local.production
   skip_final_snapshot           = !local.production
   final_snapshot_identifier     = local.production ? "${local.db_identifier}-final" : null
