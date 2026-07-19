@@ -15,6 +15,8 @@ env:
   ENVIRONMENT: staging
   PMS_PROVIDER: cliniko
   TF_STATE_BUCKET: 2care-voice-tfstate-519570322025
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEPLOY_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEPLOY_SECRET_ACCESS_KEY }}
 
 jobs:
   deploy:
@@ -23,11 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          aws-access-key-id: ${{ secrets.AWS_DEPLOY_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEPLOY_SECRET_ACCESS_KEY }}
+      - name: Verify temporary deployment credentials
+        run: aws sts get-caller-identity --region "$AWS_REGION"
 
       - uses: opentofu/setup-opentofu@v1
         with:
