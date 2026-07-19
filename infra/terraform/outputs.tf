@@ -1,5 +1,5 @@
 output "api_base_url" {
-  value = "https://${aws_cloudfront_distribution.app.domain_name}"
+  value = "http://${aws_lb.app.dns_name}"
 }
 
 output "application_secret_arn" {

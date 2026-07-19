@@ -12,8 +12,7 @@
 flowchart LR
     Caller["Patient"] --> Telephony["Retell web call or telephony provider"]
     Telephony --> Voice["Retell agent"]
-    Voice -->|"Platform token over HTTPS"| Edge["CloudFront"]
-    Edge --> ALB["AWS ALB"]
+    Voice -->|"Platform token (staging ALB transport)"| ALB["AWS ALB"]
     ALB --> API["FastAPI on ECS Fargate"]
     API --> DB[("RDS PostgreSQL")]
     API --> PMS["Cliniko or mock PMS"]

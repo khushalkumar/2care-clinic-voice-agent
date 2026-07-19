@@ -7,7 +7,7 @@ PMS failure handling.
 
 ## Current status
 
-The backend is live in AWS staging behind an HTTPS edge, backed by RDS PostgreSQL and Cliniko.
+The backend is live in AWS staging behind an ALB, backed by RDS PostgreSQL and Cliniko.
 The deployment has passed `/live` and dependency-aware `/ready` checks. Retell agent provisioning
 is versioned in this repository and runs after each staging deployment. A web-call test is the
 current live voice entry point; an independently callable PSTN number remains pending purchase.
@@ -18,7 +18,7 @@ current live voice entry point; an independently callable PSTN number remains pe
 - Live Cliniko availability and one synthetic patient/appointment write have been contract-verified.
 - HMAC authentication, replay prevention, request limits, and opaque slot tokens are tested.
 - Timeout-after-write reconciliation produces one appointment and never false confirmation.
-- OpenTofu validates the staging/production AWS configuration, including the CloudFront HTTPS edge.
+- OpenTofu validates the staging/production AWS configuration.
 - Twelve multi-turn EN/HI/Hinglish scenarios are versioned under `evals/scenarios/`.
 
 ## Voice platform decision
@@ -41,8 +41,7 @@ recovery, component latency, and cost per completed conversation.
 flowchart LR
     Caller["Patient"] --> Tel["Retell web call / inbound telephony"]
     Tel --> Voice["Retell voice agent"]
-    Voice -->|"HTTPS + platform token"| Edge["CloudFront HTTPS edge"]
-    Edge --> ALB["AWS ALB"]
+    Voice -->|"Platform token (staging ALB transport)"| ALB["AWS ALB"]
     ALB --> API["FastAPI on ECS Fargate"]
     API --> DB[("RDS PostgreSQL")]
     API --> PMS["Cliniko / durable mock"]
@@ -88,7 +87,7 @@ uvicorn app.server:app --host 0.0.0.0 --port 8000
 ## Deployment
 
 Terraform-compatible infrastructure is in `infra/terraform`. It defines private Fargate tasks,
-private RDS, ALB, CloudFront HTTPS edge, KMS, secret containers, SQS/DLQ, ECR, autoscaling, logs,
+private RDS, an ALB, KMS, secret containers, SQS/DLQ, ECR, autoscaling, logs,
 and alarms. No secret
 value is stored in Terraform. Production enables two tasks, Multi-AZ RDS, longer backups, and
 deletion protection. Staging uses one task, private single-AZ RDS, and a public-IP task reachable

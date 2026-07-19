@@ -5,8 +5,8 @@ for (const name of ["BACKEND_URL", "RETELL_API_KEY", "RETELL_TOOL_TOKEN"]) {
 }
 
 const backendUrl = process.env.BACKEND_URL.replace(/\/$/, "");
-if (!backendUrl.startsWith("https://")) {
-  throw new Error("BACKEND_URL must use HTTPS for Retell custom tools");
+if (!/^https?:\/\//.test(backendUrl)) {
+  throw new Error("BACKEND_URL must use HTTP or HTTPS");
 }
 
 const prompt = await readFile(
