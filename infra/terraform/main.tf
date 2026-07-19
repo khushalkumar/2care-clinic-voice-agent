@@ -282,8 +282,7 @@ resource "aws_ecr_repository" "app" {
   name                 = "2care-clinic-voice-agent"
   image_tag_mutability = "IMMUTABLE"
   encryption_configuration {
-    encryption_type = "KMS"
-    kms_key         = aws_kms_key.main.arn
+    encryption_type = "AES256"
   }
   image_scanning_configuration { scan_on_push = true }
 }
