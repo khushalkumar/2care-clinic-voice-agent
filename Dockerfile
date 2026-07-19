@@ -4,7 +4,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /build
 
-RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
 COPY pyproject.toml README.md ./
 COPY app ./app
@@ -21,7 +24,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /nonexistent app
