@@ -25,6 +25,9 @@ through a Twilio Elastic SIP Trunk for inbound PSTN testing.
 - Seventeen multi-turn EN/HI/Hinglish scenarios are versioned under `evals/scenarios/`. The live
   evidence gate requires every scenario in all three language modes; no results are claimed until
   those calls are completed and redacted.
+- An [observed pilot report](evals/reports/observed-pilot-report.md) summarizes eight completed
+  exploratory phone calls. It is explicitly not the complete scripted scenario evaluation and
+  reports booking completion as 0/8 for that sample.
 
 ## Voice platform decision
 
