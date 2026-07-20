@@ -14,6 +14,7 @@ _ALLOWED_KEYS = {
     "redundant_questions",
     "latency_ms",
 }
+_REQUIRED_LANGUAGES = ("en", "hi", "hinglish")
 
 
 def validate_measurement_coverage(path: Path) -> list[CallMeasurement]:
@@ -31,7 +32,11 @@ def validate_measurement_coverage(path: Path) -> list[CallMeasurement]:
             )
 
     measurements = load_measurements(path)
-    expected = {(scenario.id, scenario.language) for scenario in load_scenarios()}
+    expected = {
+        (scenario.id, language)
+        for scenario in load_scenarios()
+        for language in _REQUIRED_LANGUAGES
+    }
     observed = {(item.scenario_id, item.language) for item in measurements}
     duplicates = len(measurements) != len(observed)
     missing = sorted(expected - observed)

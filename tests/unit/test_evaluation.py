@@ -26,6 +26,7 @@ def test_scenario_corpus_covers_required_multiturn_language_cases() -> None:
         "branch_specialty_triage",
     } <= ids
     assert {scenario.language for scenario in scenarios} == {"en", "hi", "hinglish"}
+    assert len(scenarios) == 17
     assert all(len(scenario.turns) >= 2 for scenario in scenarios)
     assert all(scenario.expected_tools for scenario in scenarios)
 

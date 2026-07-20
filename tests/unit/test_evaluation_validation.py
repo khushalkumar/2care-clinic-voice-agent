@@ -38,6 +38,33 @@ def test_evaluation_validation_requires_every_scenario_in_each_language(tmp_path
     assert "missing evaluation coverage" in result.stderr
 
 
+def test_evaluation_validation_requires_all_17_scenarios_in_all_three_modes(tmp_path) -> None:
+    measurements = tmp_path / "measurements.jsonl"
+    measurements.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "scenario_id": scenario.id,
+                    "language": language,
+                    "passed": True,
+                    "turns_to_completion": 4,
+                    "redundant_questions": 0,
+                    "latency_ms": {"asr": 100, "llm": 200, "tts": 100, "network": 30},
+                }
+            )
+            for scenario in load_scenarios()
+            for language in ("en", "hi", "hinglish")
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = _validate(measurements)
+
+    assert result.returncode == 0
+    assert "validated 51 redacted scenario measurements" in result.stdout
+
+
 def test_evaluation_validation_rejects_call_identifiers_and_pii(tmp_path) -> None:
     measurements = tmp_path / "measurements.jsonl"
     measurements.write_text(
