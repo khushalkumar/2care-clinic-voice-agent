@@ -61,15 +61,15 @@ const tools = [
   ),
   customTool(
     "bootstrap_call",
-    "Create or resume a call session after the caller gives their phone number. Use configured platform_call_id and called_phone exactly.",
+    "Create or resume a call session after the caller gives their phone number. Use Retell's call_id, direction, and agent_number system variables for call metadata.",
     "/v1/tools/bootstrap-call",
     {
       type: "object",
       properties: {
-        platform_call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
-        direction: { ...string, enum: ["inbound"] },
+        platform_call_id: { ...string, description: "Use {{call_id}} exactly." },
+        direction: { ...string, enum: ["inbound"], description: "Use {{direction}} exactly." },
         caller_phone: { ...string, description: "Caller phone in E.164 format." },
-        called_phone: { ...string, description: "Use {{called_phone}} exactly." },
+        called_phone: { ...string, description: "Use {{agent_number}} exactly." },
       },
       required: ["platform_call_id", "direction", "caller_phone", "called_phone"],
     },
@@ -81,7 +81,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        call_id: { ...string, description: "Use {{call_id}} exactly." },
         business_id: string,
         practitioner_ids: { type: "array", items: string },
         appointment_type_id: string,
@@ -105,7 +105,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        call_id: { ...string, description: "Use {{call_id}} exactly." },
         patient_id: string,
         full_name: string,
         availability_token: string,
@@ -121,7 +121,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        call_id: { ...string, description: "Use {{call_id}} exactly." },
         patient_id: string,
       },
       required: ["call_id", "patient_id"],
@@ -134,7 +134,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        call_id: { ...string, description: "Use {{call_id}} exactly." },
         appointment_id: string,
         starts_at: string,
         ends_at: string,
@@ -150,7 +150,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{platform_call_id}} exactly." },
+        call_id: { ...string, description: "Use {{call_id}} exactly." },
         appointment_id: string,
         idempotency_key: string,
       },
@@ -188,8 +188,8 @@ const llmPayload = {
   general_prompt: prompt,
   general_tools: tools,
   default_dynamic_variables: {
-    platform_call_id: "retell-staging-web-demo",
-    called_phone: "+910000000000",
+    direction: "inbound",
+    agent_number: "+14177428846",
   },
 };
 

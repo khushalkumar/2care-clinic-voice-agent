@@ -1,4 +1,6 @@
 import asyncio
+import json
+import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -13,6 +15,8 @@ from app.application.ports.pms import (
     PmsUnknownOutcome,
     PmsValidationError,
 )
+
+LOGGER = logging.getLogger("voice_agent.pms")
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,7 +100,20 @@ class ClinikoTransport:
             if response.status_code == 409:
                 raise PmsConflict("conflict")
             if 400 <= response.status_code < 500:
-                raise PmsValidationError("request_rejected")
+                LOGGER.warning(
+                    json.dumps(
+                        {
+                            "event": "cliniko_request_rejected",
+                            "method": method.upper(),
+                            "path": path,
+                            "status_code": response.status_code,
+                        },
+                        separators=(",", ":"),
+                    )
+                )
+                raise PmsValidationError(
+                    "request_rejected", status_code=response.status_code, path=path
+                )
             if response.status_code == 204:
                 return {}
 

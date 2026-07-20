@@ -56,9 +56,20 @@ def test_hosted_voice_demo_uses_retell_web_sdk_without_an_embedded_secret() -> N
     assert "RETELL_API_KEY" not in page
 
 
-def test_retell_tools_bind_mutations_to_the_platform_call_id() -> None:
+def test_retell_tools_bind_call_mutations_to_retell_call_id() -> None:
     provisioner = (ROOT / "scripts/provision_retell_agent.mjs").read_text()
     prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
 
-    assert provisioner.count('description: "Use {{platform_call_id}} exactly."') >= 6
-    assert "Use `{{platform_call_id}}` for every `call_id` argument." in prompt
+    assert provisioner.count('description: "Use {{call_id}} exactly."') >= 6
+    assert 'description: "Use {{direction}} exactly."' in provisioner
+    assert 'description: "Use {{agent_number}} exactly."' in provisioner
+    assert '"platform_call_id": "retell-staging-web-demo"' not in provisioner
+    assert "Use `{{call_id}}` for every `call_id` argument." in prompt
+    assert "Use the `session_id` returned by `bootstrap_call`" in prompt
+
+
+def test_retell_web_fallbacks_use_valid_inbound_call_values() -> None:
+    provisioner = (ROOT / "scripts/provision_retell_agent.mjs").read_text()
+
+    assert 'direction: "inbound"' in provisioner
+    assert 'agent_number: "+14177428846"' in provisioner

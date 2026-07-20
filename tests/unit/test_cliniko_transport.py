@@ -90,6 +90,20 @@ async def test_http_errors_map_without_leaking_credentials(
     assert "test-secret-key" not in str(caught.value)
 
 
+async def test_validation_error_retains_vendor_status_for_internal_diagnostics() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(422, text='{"detail":"invalid appointment type"}')
+
+    with pytest.raises(PmsValidationError) as caught:
+        await _client(handler).request("GET", "appointment_types/invalid")
+
+    assert caught.value.code == "request_rejected"
+    assert caught.value.status_code == 422
+    assert caught.value.path == "appointment_types/invalid"
+    assert "invalid appointment type" not in str(caught.value)
+    assert "test-secret-key" not in str(caught.value)
+
+
 async def test_post_timeout_is_an_unknown_outcome_without_a_retry() -> None:
     attempts = 0
 
