@@ -120,3 +120,33 @@ async def test_start_attaches_callback_context_and_replay_keeps_it(call_store: C
     assert first.session.callback_campaign == "referral"
     assert first.session.callback_purpose == "complete referral booking"
     assert replay.session.callback_purpose == first.session.callback_purpose
+
+
+async def test_checkpoint_without_identity_does_not_clear_bound_patient(
+    call_store: CallStore,
+) -> None:
+    now = datetime(2026, 7, 18, 8, 0, tzinfo=UTC)
+    started = await call_store.start(
+        StartCall("provider-bound-patient", "inbound", "+919900000001", "+918012345678"),
+        now=now,
+    )
+    await call_store.save_checkpoint(
+        started.session.id,
+        checkpoint={"intent": "book"},
+        patient_id="aarav-sharma",
+        language_mode="en",
+        now=now,
+    )
+    await call_store.save_checkpoint(
+        started.session.id,
+        checkpoint={"intent": "book", "step": "confirmed"},
+        patient_id=None,
+        language_mode=None,
+        now=now + timedelta(seconds=1),
+    )
+
+    current = await call_store.get(started.session.id)
+
+    assert current is not None
+    assert current.patient_id == "aarav-sharma"
+    assert current.language_mode == "en"

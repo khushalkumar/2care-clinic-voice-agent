@@ -65,6 +65,8 @@ class RuntimeSettings:
     cliniko_shard: str | None = None
     cliniko_user_agent: str | None = None
     cliniko_patient_ids_by_phone: dict[str, str] | None = None
+    cors_allowed_origins: tuple[str, ...] = ()
+    same_day_booking_buffer_minutes: int = 60
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str]) -> "RuntimeSettings":
@@ -95,6 +97,24 @@ class RuntimeSettings:
         ):
             raise ValueError("Cliniko configuration is incomplete")
         patient_ids_by_phone = _patient_mapping(values, required=pms_provider == "cliniko")
+        cors_allowed_origins = tuple(
+            origin.strip()
+            for origin in values.get("CORS_ALLOWED_ORIGINS", "").split(",")
+            if origin.strip()
+        )
+        if any(
+            origin == "*" or not origin.startswith(("http://", "https://"))
+            for origin in cors_allowed_origins
+        ):
+            raise ValueError("CORS_ALLOWED_ORIGINS must contain explicit HTTP(S) origins")
+        try:
+            same_day_booking_buffer_minutes = int(
+                values.get("SAME_DAY_BOOKING_BUFFER_MINUTES", "60")
+            )
+        except ValueError as error:
+            raise ValueError("SAME_DAY_BOOKING_BUFFER_MINUTES must be an integer") from error
+        if not 0 <= same_day_booking_buffer_minutes <= 24 * 60:
+            raise ValueError("SAME_DAY_BOOKING_BUFFER_MINUTES must be between 0 and 1440")
         return cls(
             app_env=app_env,
             database_url=database_url,
@@ -106,6 +126,8 @@ class RuntimeSettings:
             cliniko_shard=cliniko_shard,
             cliniko_user_agent=cliniko_user_agent,
             cliniko_patient_ids_by_phone=patient_ids_by_phone,
+            cors_allowed_origins=cors_allowed_origins,
+            same_day_booking_buffer_minutes=same_day_booking_buffer_minutes,
         )
 
 
@@ -142,6 +164,9 @@ def build_runtime_app(settings: RuntimeSettings) -> FastAPI:
             request_hmac_secret=settings.request_hmac_secret,
             availability_token_secret=settings.availability_token_secret,
             retell_tool_token=settings.retell_tool_token,
+            cors_allowed_origins=settings.cors_allowed_origins,
+            hsts_enabled=settings.app_env == "production",
+            same_day_booking_buffer_minutes=settings.same_day_booking_buffer_minutes,
         ),
         session_factory=sessions,
         pms=pms,

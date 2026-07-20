@@ -1,13 +1,14 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from secrets import compare_digest
 from time import perf_counter
 from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import text
@@ -18,7 +19,7 @@ from app.application.availability_token import (
     AvailabilityTokenService,
 )
 from app.application.booking_service import BookingService, IdentityVerificationError
-from app.application.call_service import CallService
+from app.application.call_service import CallAuthorizationError, CallService
 from app.application.ports.pms import PmsConflict, PmsError, PmsGateway
 from app.application.request_auth import RequestAuthenticator, RequestAuthError, SignedRequest
 from app.application.slot_presentation import spoken_slot_label
@@ -34,6 +35,9 @@ class ApiSettings:
     availability_token_secret: bytes
     retell_tool_token: bytes | None = None
     max_request_bytes: int = 64 * 1024
+    cors_allowed_origins: tuple[str, ...] = ()
+    hsts_enabled: bool = False
+    same_day_booking_buffer_minutes: int = 60
 
 
 class SearchAvailabilityRequest(BaseModel):
@@ -60,24 +64,28 @@ class BookAppointmentRequest(BaseModel):
 class PatientAppointmentsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    call_id: str
+    session_id: UUID
     patient_id: str
+    full_name: str
 
 
 class RescheduleAppointmentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    call_id: str
+    session_id: UUID
+    patient_id: str
+    full_name: str
     appointment_id: str
-    starts_at: datetime
-    ends_at: datetime
+    availability_token: str
     idempotency_key: str
 
 
 class CancelAppointmentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    call_id: str
+    session_id: UUID
+    patient_id: str
+    full_name: str
     appointment_id: str
     idempotency_key: str
 
@@ -146,6 +154,7 @@ def create_app(
         BookingStore(session_factory),
         AvailabilityTokenService(settings.availability_token_secret, clock=current_time),
         clock=current_time,
+        same_day_buffer=timedelta(minutes=settings.same_day_booking_buffer_minutes),
     )
     calls = CallService(CallStore(session_factory), pms, clock=current_time)
 
@@ -159,6 +168,21 @@ def create_app(
 
     app = FastAPI(title="2care Clinic Voice Agent", version="0.1.0", lifespan=lifespan)
 
+    if settings.cors_allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(settings.cors_allowed_origins),
+            allow_credentials=False,
+            allow_methods=["GET", "POST"],
+            allow_headers=[
+                "Content-Type",
+                "X-2Care-Event-Id",
+                "X-2Care-Platform-Token",
+                "X-2Care-Signature",
+                "X-2Care-Timestamp",
+            ],
+        )
+
     @app.middleware("http")
     async def authenticate(request: Request, call_next: Callable[[Request], Any]) -> Any:
         started = perf_counter()
@@ -170,6 +194,14 @@ def create_app(
 
         def complete(response: JSONResponse | Any) -> Any:
             response.headers["X-Request-ID"] = request_id
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Referrer-Policy"] = "no-referrer"
+            response.headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=()"
+            if settings.hsts_enabled and request.url.scheme == "https":
+                response.headers["Strict-Transport-Security"] = (
+                    "max-age=31536000; includeSubDomains"
+                )
             log_http_request(
                 request_id=request_id,
                 method=request.method,
@@ -180,6 +212,8 @@ def create_app(
             return response
 
         if request.url.path in {"/live", "/ready", "/openapi.json"}:
+            return complete(await call_next(request))
+        if request.method == "OPTIONS" and settings.cors_allowed_origins:
             return complete(await call_next(request))
         body = await request.body()
         if len(body) > settings.max_request_bytes:
@@ -225,6 +259,12 @@ def create_app(
         request: Request, error: IdentityVerificationError
     ) -> JSONResponse:
         return _error(str(error), 400)
+
+    @app.exception_handler(CallAuthorizationError)
+    async def handle_call_authorization_error(
+        request: Request, error: CallAuthorizationError
+    ) -> JSONResponse:
+        return _error(str(error), 403)
 
     @app.exception_handler(ValueError)
     async def handle_value_error(request: Request, error: ValueError) -> JSONResponse:
@@ -282,6 +322,7 @@ def create_app(
 
     @app.post("/v1/tools/search-availability")
     async def search_availability(payload: SearchAvailabilityRequest) -> dict[str, Any]:
+        await calls.require_active_session(payload.session_id)
         offered = await booking.search_availability(
             session_id=str(payload.session_id),
             business_id=payload.business_id,
@@ -359,6 +400,7 @@ def create_app(
 
     @app.post("/v1/tools/book-appointment")
     async def book_appointment(payload: BookAppointmentRequest) -> dict[str, Any]:
+        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
         outcome = await booking.book(
             session_id=str(payload.session_id),
             patient_id=payload.patient_id,
@@ -376,6 +418,7 @@ def create_app(
     async def list_patient_appointments(
         payload: PatientAppointmentsRequest,
     ) -> dict[str, Any]:
+        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
         appointments = await booking.list_patient_appointments(payload.patient_id)
         return {"appointments": [_appointment_payload(appointment) for appointment in appointments]}
 
@@ -383,20 +426,32 @@ def create_app(
     async def reschedule_appointment(
         payload: RescheduleAppointmentRequest,
     ) -> dict[str, Any]:
-        appointment = await booking.reschedule(
+        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
+        outcome = await booking.reschedule(
+            session_id=str(payload.session_id),
+            patient_id=payload.patient_id,
+            availability_token=payload.availability_token,
             appointment_id=payload.appointment_id,
-            starts_at=payload.starts_at,
-            ends_at=payload.ends_at,
             idempotency_key=payload.idempotency_key,
         )
-        return {"status": "confirmed", "appointment": _appointment_payload(appointment)}
+        return {
+            "status": outcome.status,
+            "operation_id": outcome.operation_id,
+            "appointment": _appointment_payload(outcome.appointment),
+        }
 
     @app.post("/v1/tools/cancel-appointment")
     async def cancel_appointment(payload: CancelAppointmentRequest) -> dict[str, Any]:
-        appointment = await booking.cancel(
+        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
+        outcome = await booking.cancel(
+            patient_id=payload.patient_id,
             appointment_id=payload.appointment_id,
             idempotency_key=payload.idempotency_key,
         )
-        return {"status": "confirmed", "appointment": _appointment_payload(appointment)}
+        return {
+            "status": outcome.status,
+            "operation_id": outcome.operation_id,
+            "appointment": _appointment_payload(outcome.appointment),
+        }
 
     return app

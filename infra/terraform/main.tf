@@ -158,6 +158,55 @@ resource "aws_lb" "app" {
   subnets                    = aws_subnet.public[*].id
   enable_deletion_protection = local.production
   drop_invalid_header_fields = true
+
+  lifecycle {
+    precondition {
+      condition     = var.environment != "production" || var.certificate_arn != null
+      error_message = "Production voice traffic requires an ACM certificate ARN and HTTPS listener."
+    }
+  }
+}
+
+resource "aws_wafv2_web_acl" "app" {
+  name  = "${local.name}-edge"
+  scope = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "rate-limit-by-ip"
+    priority = 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 2000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name}-rate-limit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${local.name}-web-acl"
+    sampled_requests_enabled   = true
+  }
+}
+
+resource "aws_wafv2_web_acl_association" "app" {
+  resource_arn = aws_lb.app.arn
+  web_acl_arn  = aws_wafv2_web_acl.app.arn
 }
 
 resource "aws_lb_target_group" "app" {

@@ -60,13 +60,17 @@ def test_retell_tools_bind_availability_to_bootstrapped_session() -> None:
     provisioner = (ROOT / "scripts/provision_retell_agent.mjs").read_text()
     prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
 
-    assert provisioner.count('description: "Use {{call_id}} exactly."') >= 4
+    assert (
+        provisioner.count('description: "Use the session_id returned by bootstrap_call exactly."')
+        >= 5
+    )
     assert (
         'session_id: { ...string, description: "Use the session_id returned by '
         'bootstrap_call exactly." }' in provisioner
     )
     assert 'description: "Use {{direction}} exactly."' in provisioner
     assert 'description: "Use {{agent_number}} exactly."' in provisioner
+    assert 'description: "Use {{call_id}} exactly."' in provisioner
     assert '"platform_call_id": "retell-staging-web-demo"' not in provisioner
     assert "Use the `session_id` returned by `bootstrap_call`" in prompt
     assert "for both `search_availability` and `book_appointment`" in prompt

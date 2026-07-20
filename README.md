@@ -17,10 +17,14 @@ through a Twilio Elastic SIP Trunk for inbound PSTN testing.
 - Booking races are enforced by PostgreSQL exclusion constraints.
 - The Cliniko adapter chunks live availability requests into its verified seven-calendar-day limit.
 - Live Cliniko availability and one synthetic patient/appointment write have been contract-verified.
-- HMAC authentication, replay prevention, request limits, and opaque slot tokens are tested.
+- HMAC authentication, replay prevention, request limits, opaque slot tokens, session-bound
+  patient authorization, strict security headers, default-deny CORS, and WAF rate limiting are
+  implemented and tested.
 - Timeout-after-write reconciliation produces one appointment and never false confirmation.
 - OpenTofu validates the staging/production AWS configuration.
-- Twelve multi-turn EN/HI/Hinglish scenarios are versioned under `evals/scenarios/`.
+- Seventeen multi-turn EN/HI/Hinglish scenarios are versioned under `evals/scenarios/`. The live
+  evidence gate requires every scenario in all three language modes; no results are claimed until
+  those calls are completed and redacted.
 
 ## Voice platform decision
 
@@ -33,7 +37,7 @@ web-call testing before telephony purchase. The agent uses deterministic `gpt-5.
 Bolna remains documented as the comparison baseline, not a second live implementation. Retell
 was chosen here because its API lets the project version and reconcile agent, prompt, voice,
 tool schemas, and platform settings after each deployment. Real-call results are intentionally
-not claimed until the 30-call English/Hindi/Hinglish bake-off has been run using the
+not claimed until the 51-call English/Hindi/Hinglish bake-off has been run using the
 [evaluation protocol](docs/evaluation.md). It reports tool accuracy, language drift, interruption
 recovery, component latency, and cost per completed conversation.
 
@@ -74,7 +78,8 @@ flowchart LR
     Caller["Patient"] --> Tel["Retell web call / inbound telephony"]
     Tel --> Voice["Retell voice agent"]
     Voice -->|"Platform token (staging ALB transport)"| ALB["AWS ALB"]
-    ALB --> API["FastAPI on ECS Fargate"]
+    ALB --> WAF["AWS WAF rate limit"]
+    WAF --> API["FastAPI on ECS Fargate"]
     API --> DB[("RDS PostgreSQL")]
     API --> PMS["Cliniko / durable mock"]
     API --> Queue["SQS + DLQ"]
@@ -126,8 +131,10 @@ deletion protection. Staging uses one task, private single-AZ RDS, and a public-
 only through the ALB security group to avoid NAT Gateway cost. Production keeps private tasks and
 per-AZ NAT gateways.
 
-Do not run `apply` until the image exists, secret JSON is populated, the plan is reviewed, and
-the user explicitly approves billable resources. See [deployment runbook](docs/runbooks/deployment.md).
+Production requires an ACM certificate ARN. With a certificate, HTTP redirects to HTTPS and HSTS
+is enabled; without one, Terraform fails before production voice traffic can be provisioned.
+Staging may remain HTTP while the account has no domain certificate. See the
+[deployment runbook](docs/runbooks/deployment.md).
 
 ## Evidence and decisions
 

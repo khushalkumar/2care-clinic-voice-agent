@@ -6,17 +6,22 @@
 - [x] AWS staging uses ECS Fargate, RDS PostgreSQL, ALB, ECR, Secrets Manager, KMS, SQS/DLQ, CloudWatch, and CloudTrail resources.
 - [x] Cliniko-backed booking, rescheduling, cancellation, idempotency, shared-phone identity, callback context, and dropped-call recovery are implemented.
 - [x] HTTPS browser voice test is published through GitHub Pages.
-- [x] CI verifies 82 tests, lint, type checks, infrastructure validation, Gitleaks, and Trivy.
-- [x] The assignment scenario corpus and redacted per-language reporting tool are committed.
+- [x] CI verifies the full pytest suite, lint, type checks, infrastructure validation, Gitleaks, and Trivy.
+- [x] The assignment scenario corpus, redaction validator, and per-language reporting tool are committed.
+- [x] All patient mutations use an active call session, caller-phone/name authorization, idempotency,
+  fresh reschedule availability tokens, and local conflict protection.
+- [x] API hardening includes request size/content-type enforcement, replay-safe HMAC, security headers,
+  default-deny CORS, and AWS WAF IP rate limiting.
 
 ## Required before claiming a production-ready, call-in submission
 
 - [x] Purchase a test-capable Twilio number and connect it to the Retell inbound agent via Elastic
   SIP Trunking.
 - [ ] Place English, Hindi, and Hinglish calls against the number. Run every scenario in
-  `evals/scenarios/core.json`, including interruption and callback recovery.
+  `evals/scenarios/core.json` in all three language modes, including interruption and callback recovery.
 - [ ] Record only redacted measurements, render the report with `scripts/render_voice_eval.py`, and
-  link the resulting report from the README or submission write-up.
+  run `scripts/validate_voice_eval.py` before linking the resulting report from the README or
+  submission write-up.
 - [ ] Obtain an ACM certificate for a domain controlled by the project, pass it as
   `certificate_arn`, and verify Retell tools use the resulting HTTPS endpoint.
 - [ ] Run a final synthetic booking, reschedule, cancellation, conflict, and human-follow-up canary

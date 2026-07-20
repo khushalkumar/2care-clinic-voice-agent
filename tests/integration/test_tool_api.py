@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 import httpx
 import pytest
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.api.app import ApiSettings, create_app
@@ -84,13 +85,34 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         )
         assert oversized.status_code == 413
 
+        bootstrap_payload = {
+            "platform_call_id": "voice-api-flow-1",
+            "direction": "inbound",
+            "caller_phone": "+919900000001",
+            "called_phone": "+918012345678",
+        }
+        bootstrap_body = json.dumps(bootstrap_payload, separators=(",", ":")).encode()
+        bootstrap = await client.post(
+            "/v1/tools/bootstrap-call",
+            content=bootstrap_body,
+            headers=_signed_headers(
+                auth,
+                event_id="bootstrap-api-flow-1",
+                path="/v1/tools/bootstrap-call",
+                body=bootstrap_body,
+                timestamp=timestamp,
+            ),
+        )
+        assert bootstrap.status_code == 200, bootstrap.text
+        session_id = bootstrap.json()["session_id"]
+
         search_payload = {
-            "session_id": "00000000-0000-0000-0000-000000000001",
+            "session_id": session_id,
             "business_id": "jayanagar",
             "practitioner_ids": ["nadia-zainab"],
             "appointment_type_id": "initial-consultation",
-            "starts_at": "2026-07-20T03:30:00Z",
-            "ends_at": "2026-07-20T07:30:00Z",
+            "starts_at": "2026-07-21T03:30:00Z",
+            "ends_at": "2026-07-21T07:30:00Z",
         }
         search_body = json.dumps(search_payload, separators=(",", ":")).encode()
         search_headers = _signed_headers(
@@ -117,7 +139,7 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         assert replay.json()["error"]["code"] == "replayed"
 
         book_payload = {
-            "session_id": "00000000-0000-0000-0000-000000000001",
+            "session_id": session_id,
             "patient_id": "aarav-sharma",
             "full_name": "Aarav Sharma",
             "availability_token": offered[0]["availability_token"],
@@ -139,7 +161,7 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
                 timestamp=timestamp,
             ),
         )
-        assert wrong_identity.status_code == 400
+        assert wrong_identity.status_code == 403
         assert wrong_identity.json()["error"]["code"] == "full_name_mismatch"
 
         book_body = json.dumps(book_payload, separators=(",", ":")).encode()
@@ -159,7 +181,11 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         assert booked.json()["appointment"]["patient_id"] == "aarav-sharma"
         appointment_id = booked.json()["appointment"]["id"]
 
-        list_payload = {"call_id": "call-1", "patient_id": "aarav-sharma"}
+        list_payload = {
+            "session_id": session_id,
+            "patient_id": "aarav-sharma",
+            "full_name": "Aarav Sharma",
+        }
         list_body = json.dumps(list_payload, separators=(",", ":")).encode()
         listed = await client.post(
             "/v1/tools/list-patient-appointments",
@@ -172,13 +198,53 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
                 timestamp=timestamp,
             ),
         )
+        assert listed.status_code == 200, listed.text
         assert [item["id"] for item in listed.json()["appointments"]] == [appointment_id]
 
+        wrong_patient_payload = list_payload | {
+            "patient_id": "meera-sharma",
+            "full_name": "Meera Sharma",
+        }
+        wrong_patient_body = json.dumps(wrong_patient_payload, separators=(",", ":")).encode()
+        wrong_patient = await client.post(
+            "/v1/tools/list-patient-appointments",
+            content=wrong_patient_body,
+            headers=_signed_headers(
+                auth,
+                event_id="list-wrong-patient",
+                path="/v1/tools/list-patient-appointments",
+                body=wrong_patient_body,
+                timestamp=timestamp,
+            ),
+        )
+        assert wrong_patient.status_code == 403
+        assert wrong_patient.json()["error"]["code"] == "patient_mismatch"
+
+        fresh_search_payload = search_payload | {
+            "starts_at": "2026-07-21T07:30:00Z",
+            "ends_at": "2026-07-21T10:30:00Z",
+        }
+        fresh_search_body = json.dumps(fresh_search_payload, separators=(",", ":")).encode()
+        fresh_search = await client.post(
+            "/v1/tools/search-availability",
+            content=fresh_search_body,
+            headers=_signed_headers(
+                auth,
+                event_id="search-reschedule-target",
+                path="/v1/tools/search-availability",
+                body=fresh_search_body,
+                timestamp=timestamp,
+            ),
+        )
+        assert fresh_search.status_code == 200, fresh_search.text
+        reschedule_slot = fresh_search.json()["slots"][0]
+
         move_payload = {
-            "call_id": "call-1",
+            "session_id": session_id,
+            "patient_id": "aarav-sharma",
+            "full_name": "Aarav Sharma",
             "appointment_id": appointment_id,
-            "starts_at": "2026-07-20T08:30:00Z",
-            "ends_at": "2026-07-20T09:30:00Z",
+            "availability_token": reschedule_slot["availability_token"],
             "idempotency_key": "move-api-1",
         }
         move_body = json.dumps(move_payload, separators=(",", ":")).encode()
@@ -194,10 +260,30 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
             ),
         )
         assert moved.status_code == 200, moved.text
-        assert moved.json()["appointment"]["starts_at"] == "2026-07-20T08:30:00+00:00"
+        assert moved.json()["appointment"]["starts_at"] == reschedule_slot["starts_at"]
+        async with engine.connect() as connection:
+            reservation_statuses = (
+                (
+                    await connection.execute(
+                        text(
+                            "SELECT sr.status "
+                            "FROM slot_reservations sr "
+                            "JOIN booking_operations bo ON bo.id = sr.booking_operation_id "
+                            "WHERE bo.remote_appointment_id = :appointment_id "
+                            "ORDER BY sr.created_at"
+                        ),
+                        {"appointment_id": appointment_id},
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        assert reservation_statuses == ["cancelled", "confirmed"]
 
         cancel_payload = {
-            "call_id": "call-1",
+            "session_id": session_id,
+            "patient_id": "aarav-sharma",
+            "full_name": "Aarav Sharma",
             "appointment_id": appointment_id,
             "idempotency_key": "cancel-api-1",
         }
@@ -215,6 +301,23 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         )
         assert cancelled.status_code == 200, cancelled.text
         assert cancelled.json()["appointment"]["status"] == "cancelled"
+        async with engine.connect() as connection:
+            final_reservation_statuses = (
+                (
+                    await connection.execute(
+                        text(
+                            "SELECT sr.status "
+                            "FROM slot_reservations sr "
+                            "JOIN booking_operations bo ON bo.id = sr.booking_operation_id "
+                            "WHERE bo.remote_appointment_id = :appointment_id"
+                        ),
+                        {"appointment_id": appointment_id},
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        assert final_reservation_statuses == ["cancelled", "cancelled"]
     finally:
         await client.aclose()
         await engine.dispose()
@@ -235,11 +338,22 @@ async def test_retell_platform_token_can_call_voice_tools(migrated_database_url:
     )
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
     try:
+        bootstrap = await client.post(
+            "/v1/tools/bootstrap-call",
+            headers={"X-2Care-Platform-Token": "r" * 32},
+            json={
+                "platform_call_id": "voice-platform-search-1",
+                "direction": "inbound",
+                "caller_phone": "+919900000001",
+                "called_phone": "+918012345678",
+            },
+        )
+        assert bootstrap.status_code == 200, bootstrap.text
         response = await client.post(
             "/v1/tools/search-availability",
             headers={"X-2Care-Platform-Token": "r" * 32},
             json={
-                "session_id": "00000000-0000-0000-0000-000000000002",
+                "session_id": bootstrap.json()["session_id"],
                 "business_id": "jayanagar",
                 "practitioner_ids": ["nadia-zainab"],
                 "appointment_type_id": "initial-consultation",

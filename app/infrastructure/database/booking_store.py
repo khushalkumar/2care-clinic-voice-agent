@@ -22,6 +22,7 @@ class ReservationRequest:
     reserved_until: datetime
     expires_at: datetime
     pms_payload: dict[str, Any] | None = None
+    operation_type: str = "book"
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,9 +33,16 @@ class ReservationResult:
 
 
 @dataclass(frozen=True, slots=True)
+class MutationResult:
+    operation_id: UUID
+    replayed: bool
+
+
+@dataclass(frozen=True, slots=True)
 class PendingBooking:
     operation_id: UUID
     idempotency_key: str
+    operation_type: str
     request_payload: dict[str, Any]
 
 
@@ -67,7 +75,7 @@ class BookingStore:
                 session.add(
                     BookingOperation(
                         id=operation_id,
-                        operation_type="book",
+                        operation_type=request.operation_type,
                         idempotency_key=request.idempotency_key,
                         status="reserved",
                         version=1,
@@ -122,7 +130,7 @@ class BookingStore:
         async with self._session_factory() as session:
             row = (
                 await session.execute(
-                    select(BookingOperation.id, SlotReservation.id)
+                    select(BookingOperation.id, SlotReservation.id, BookingOperation.operation_type)
                     .join(
                         SlotReservation,
                         SlotReservation.booking_operation_id == BookingOperation.id,
@@ -130,7 +138,68 @@ class BookingStore:
                     .where(BookingOperation.idempotency_key == idempotency_key)
                 )
             ).one()
+        if row[2] not in {"book", "reschedule"}:
+            raise ValueError("idempotency_key_reused")
         return ReservationResult(row[0], row[1], replayed=True)
+
+    async def start_mutation(
+        self,
+        *,
+        operation_type: str,
+        idempotency_key: str,
+        remote_appointment_id: str,
+        request_payload: dict[str, Any],
+    ) -> MutationResult:
+        operation_id = uuid4()
+        try:
+            async with self._session_factory() as session, session.begin():
+                await session.execute(
+                    text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+                    {"key": idempotency_key},
+                )
+                session.add(
+                    BookingOperation(
+                        id=operation_id,
+                        operation_type=operation_type,
+                        idempotency_key=idempotency_key,
+                        status="remote_in_flight",
+                        version=1,
+                        remote_appointment_id=remote_appointment_id,
+                        request_payload=request_payload,
+                    )
+                )
+                session.add(
+                    OutboxEvent(
+                        id=uuid4(),
+                        aggregate_type="booking_operation",
+                        aggregate_id=operation_id,
+                        event_type=f"booking.{operation_type}.started",
+                        payload={
+                            "operation_id": str(operation_id),
+                            "appointment_id": remote_appointment_id,
+                        },
+                        status="pending",
+                        attempts=0,
+                        available_at=datetime.now(UTC),
+                    )
+                )
+                await session.flush()
+        except IntegrityError as error:
+            constraint, _ = _database_error_details(error)
+            if constraint == "uq_booking_operations_idempotency_key":
+                async with self._session_factory() as session:
+                    existing = await session.scalar(
+                        select(BookingOperation).where(
+                            BookingOperation.idempotency_key == idempotency_key
+                        )
+                    )
+                if existing is None:
+                    raise
+                if existing.operation_type != operation_type:
+                    raise ValueError("idempotency_key_reused") from error
+                return MutationResult(existing.id, replayed=True)
+            raise
+        return MutationResult(operation_id, replayed=False)
 
     async def mark_confirmed(self, operation_id: UUID, remote_appointment_id: str) -> None:
         await self._set_outcome(
@@ -158,6 +227,21 @@ class BookingStore:
             remote_appointment_id=None,
             error_code=error_code,
         )
+
+    async def release_prior_reservations(
+        self, remote_appointment_id: str, *, except_operation_id: UUID
+    ) -> None:
+        async with self._session_factory() as session, session.begin():
+            await session.execute(
+                update(SlotReservation)
+                .where(
+                    SlotReservation.booking_operation_id == BookingOperation.id,
+                    BookingOperation.remote_appointment_id == remote_appointment_id,
+                    BookingOperation.id != except_operation_id,
+                    SlotReservation.status.in_(("held", "pending_remote", "confirmed")),
+                )
+                .values(status="cancelled")
+            )
 
     async def _set_outcome(
         self,
@@ -195,6 +279,7 @@ class BookingStore:
                     select(
                         BookingOperation.id,
                         BookingOperation.idempotency_key,
+                        BookingOperation.operation_type,
                         BookingOperation.request_payload,
                     )
                     .where(
@@ -206,7 +291,7 @@ class BookingStore:
                 )
             ).all()
         return [
-            PendingBooking(row.id, row.idempotency_key, row.request_payload)
+            PendingBooking(row.id, row.idempotency_key, row.operation_type, row.request_payload)
             for row in rows
             if row.request_payload is not None
         ]

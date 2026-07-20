@@ -23,6 +23,7 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEPLOY_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEPLOY_SECRET_ACCESS_KEY }}
+      CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -122,10 +123,15 @@ jobs:
       - name: Apply staging infrastructure
         working-directory: infra/terraform
         run: |
+          CERTIFICATE_ARGS=()
+          if [[ -n "${CERTIFICATE_ARN:-}" ]]; then
+            CERTIFICATE_ARGS+=("-var=certificate_arn=${CERTIFICATE_ARN}")
+          fi
           tofu apply -auto-approve \
             -var="environment=${ENVIRONMENT}" \
             -var="pms_provider=${PMS_PROVIDER}" \
-            -var="container_image=${{ steps.image.outputs.uri }}"
+            -var="container_image=${{ steps.image.outputs.uri }}" \
+            "${CERTIFICATE_ARGS[@]}"
 
       - name: Run database migrations
         env:

@@ -155,9 +155,27 @@ class CallStore:
             if row is None:
                 raise LookupError("call session not found")
             row.checkpoint = checkpoint
-            row.patient_id = patient_id
-            row.language_mode = language_mode
+            if patient_id is not None:
+                row.patient_id = patient_id
+            if language_mode is not None:
+                row.language_mode = language_mode
             row.updated_at = now
+
+    async def get(self, session_id: UUID) -> CallSessionRecord | None:
+        async with self._session_factory() as session:
+            row = await session.get(CallSession, session_id)
+            return _record(row) if row is not None else None
+
+    async def bind_patient(self, session_id: UUID, patient_id: str, *, now: datetime) -> bool:
+        async with self._session_factory() as session, session.begin():
+            row = await session.get(CallSession, session_id, with_for_update=True)
+            if row is None:
+                raise LookupError("call session not found")
+            if row.patient_id is not None and row.patient_id != patient_id:
+                return False
+            row.patient_id = patient_id
+            row.updated_at = now
+            return True
 
     async def end(
         self,

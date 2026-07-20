@@ -5,6 +5,7 @@ from uuid import UUID
 
 from app.application.ports.pms import PmsGateway
 from app.infrastructure.database.call_store import (
+    CallSessionRecord,
     CallStore,
     FollowUpResult,
     StartCall,
@@ -23,6 +24,10 @@ class PatientLookup:
 class BootstrapResult:
     call: StartCallResult
     patient_lookup: PatientLookup
+
+
+class CallAuthorizationError(Exception):
+    pass
 
 
 class CallService:
@@ -54,6 +59,28 @@ class CallService:
         else:
             lookup = PatientLookup(0, "new_patient")
         return BootstrapResult(started, lookup)
+
+    async def authorize_patient(self, session_id: UUID, patient_id: str, full_name: str) -> None:
+        session = await self.require_active_session(session_id)
+        patient = await self._pms.get_patient(patient_id)
+        if patient is None:
+            raise CallAuthorizationError("patient_not_found")
+        if patient.phone_e164 != session.caller_phone_e164:
+            raise CallAuthorizationError("patient_phone_mismatch")
+        supplied_name = " ".join(full_name.casefold().split())
+        expected_name = " ".join(patient.full_name.casefold().split())
+        if not supplied_name or supplied_name != expected_name:
+            raise CallAuthorizationError("full_name_mismatch")
+        if not await self._store.bind_patient(session_id, patient_id, now=self._clock()):
+            raise CallAuthorizationError("patient_mismatch")
+
+    async def require_active_session(self, session_id: UUID) -> CallSessionRecord:
+        session = await self._store.get(session_id)
+        if session is None:
+            raise CallAuthorizationError("call_session_not_found")
+        if session.status != "active":
+            raise CallAuthorizationError("call_session_inactive")
+        return session
 
     async def save_checkpoint(
         self,

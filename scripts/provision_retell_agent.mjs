@@ -121,10 +121,11 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{call_id}} exactly." },
+        session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
         patient_id: string,
+        full_name: string,
       },
-      required: ["call_id", "patient_id"],
+      required: ["session_id", "patient_id", "full_name"],
     },
   ),
   customTool(
@@ -134,13 +135,14 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{call_id}} exactly." },
+        session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
+        patient_id: string,
+        full_name: string,
         appointment_id: string,
-        starts_at: string,
-        ends_at: string,
+        availability_token: string,
         idempotency_key: string,
       },
-      required: ["call_id", "appointment_id", "starts_at", "ends_at", "idempotency_key"],
+      required: ["session_id", "patient_id", "full_name", "appointment_id", "availability_token", "idempotency_key"],
     },
   ),
   customTool(
@@ -150,11 +152,13 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{call_id}} exactly." },
+        session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
+        patient_id: string,
+        full_name: string,
         appointment_id: string,
         idempotency_key: string,
       },
-      required: ["call_id", "appointment_id", "idempotency_key"],
+      required: ["session_id", "patient_id", "full_name", "appointment_id", "idempotency_key"],
     },
   ),
   customTool(

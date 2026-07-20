@@ -10,8 +10,9 @@ turns redacted Retell call observations into per-language quality and latency re
 
 1. Use only the synthetic Cliniko patients and a staging Retell agent.
 2. Create one fresh web-call token per run, or use the connected test number once provisioned.
-3. Run every scenario in `evals/scenarios/core.json` at least once in English, Hindi, and
-   Hinglish where applicable. Include interruption, returning-patient, callback, stale-availability,
+3. Run every scenario in `evals/scenarios/core.json` once in each of English, Hindi, and
+   Hinglish. This is 51 calls for the current 17-scenario corpus. Include interruption,
+   returning-patient, callback, stale-availability,
    cross-branch earliest, named-branch, dropped-call, booking, reschedule, cancellation, and
    human-follow-up paths.
 4. Do not commit recordings, phone numbers, raw transcripts, Retell access tokens, or Cliniko IDs.
@@ -35,6 +36,16 @@ The generated Markdown reports each language separately. It records scenario pas
 mean turns-to-completion, redundant-questions-per-call, and p50 ASR/LLM/TTS/network/end-to-end
 latency. The report is intentionally not generated from the committed example input: those values
 are illustrative and are not performance claims.
+
+Validate complete coverage and redaction before rendering:
+
+```bash
+python scripts/validate_voice_eval.py /secure/path/calls.jsonl
+```
+
+The validator rejects call IDs, phone numbers, transcripts, recordings, duplicate scenario/language
+rows, and incomplete coverage. A real evaluation report cannot be marked complete until this command
+passes.
 
 ## Interpretation and limitations
 

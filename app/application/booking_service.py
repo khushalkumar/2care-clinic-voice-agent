@@ -2,9 +2,11 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from app.application.availability_token import (
     AvailabilityClaim,
+    AvailabilityTokenError,
     AvailabilityTokenService,
 )
 from app.application.ports.pms import (
@@ -14,8 +16,11 @@ from app.application.ports.pms import (
     PmsError,
     PmsGateway,
     PmsUnknownOutcome,
+    PmsValidationError,
 )
 from app.infrastructure.database.booking_store import BookingStore, ReservationRequest
+
+CLINIC_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +40,21 @@ class IdentityVerificationError(Exception):
     pass
 
 
+def apply_same_day_buffer(
+    requested_start: datetime,
+    *,
+    now: datetime,
+    buffer: timedelta,
+    timezone: ZoneInfo = CLINIC_TIMEZONE,
+) -> datetime:
+    if requested_start.astimezone(timezone).date() != now.astimezone(timezone).date():
+        return requested_start
+    minimum_start = now + buffer
+    if requested_start < minimum_start:
+        return minimum_start.astimezone(requested_start.tzinfo)
+    return requested_start
+
+
 class BookingService:
     def __init__(
         self,
@@ -43,11 +63,13 @@ class BookingService:
         token_service: AvailabilityTokenService,
         *,
         clock: Callable[[], datetime] | None = None,
+        same_day_buffer: timedelta = timedelta(minutes=60),
     ) -> None:
         self._pms = pms
         self._booking_store = booking_store
         self._tokens = token_service
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._same_day_buffer = same_day_buffer
 
     async def search_availability(
         self,
@@ -59,11 +81,18 @@ class BookingService:
         starts_at: datetime,
         ends_at: datetime,
     ) -> list[OfferedSlot]:
+        effective_starts_at = apply_same_day_buffer(
+            starts_at,
+            now=self._clock(),
+            buffer=self._same_day_buffer,
+        )
+        if effective_starts_at >= ends_at:
+            return []
         slots = await self._pms.search_available_times(
             business_id=business_id,
             practitioner_ids=practitioner_ids,
             appointment_type_id=appointment_type_id,
-            starts_at=starts_at,
+            starts_at=effective_starts_at,
             ends_at=ends_at,
         )
         query_id = uuid4().hex
@@ -148,17 +177,99 @@ class BookingService:
     async def reschedule(
         self,
         *,
+        session_id: str,
+        patient_id: str,
+        availability_token: str,
         appointment_id: str,
-        starts_at: datetime,
-        ends_at: datetime,
         idempotency_key: str,
-    ) -> Appointment:
-        return await self._pms.reschedule_appointment(
-            appointment_id,
-            starts_at=starts_at,
-            ends_at=ends_at,
-            idempotency_key=idempotency_key,
+    ) -> BookingOutcome:
+        claim = self._tokens.verify(availability_token, expected_session_id=session_id)
+        existing = await self._pms.get_appointment(appointment_id)
+        self._verify_owned_appointment(existing, patient_id)
+        assert existing is not None
+        if existing.status != "booked":
+            raise PmsValidationError("appointment_not_active")
+        if (
+            existing.business_id != claim.business_id
+            or existing.practitioner_id != claim.practitioner_id
+            or existing.appointment_type_id != claim.appointment_type_id
+        ):
+            raise AvailabilityTokenError("appointment_slot_mismatch")
+        reservation = await self._booking_store.reserve(
+            ReservationRequest(
+                idempotency_key=idempotency_key,
+                practitioner_key=claim.practitioner_id,
+                reserved_from=claim.starts_at,
+                reserved_until=claim.ends_at,
+                expires_at=self._clock() + timedelta(minutes=5),
+                operation_type="reschedule",
+                pms_payload={
+                    "operation_type": "reschedule",
+                    "appointment_id": appointment_id,
+                    "patient_id": patient_id,
+                    "business_id": claim.business_id,
+                    "practitioner_id": claim.practitioner_id,
+                    "appointment_type_id": claim.appointment_type_id,
+                    "starts_at": claim.starts_at.isoformat(),
+                    "ends_at": claim.ends_at.isoformat(),
+                },
+            )
         )
+        try:
+            appointment = await self._pms.reschedule_appointment(
+                appointment_id,
+                starts_at=claim.starts_at,
+                ends_at=claim.ends_at,
+                idempotency_key=idempotency_key,
+            )
+        except PmsUnknownOutcome as error:
+            await self._booking_store.mark_pending_verification(
+                reservation.operation_id, error.code
+            )
+            return BookingOutcome("pending_verification", str(reservation.operation_id), None)
+        except PmsError as error:
+            await self._booking_store.mark_failed(reservation.operation_id, error.code)
+            raise
+        await self._booking_store.mark_confirmed(reservation.operation_id, appointment.id)
+        await self._booking_store.release_prior_reservations(
+            appointment.id, except_operation_id=reservation.operation_id
+        )
+        return BookingOutcome("confirmed", str(reservation.operation_id), appointment)
 
-    async def cancel(self, *, appointment_id: str, idempotency_key: str) -> Appointment:
-        return await self._pms.cancel_appointment(appointment_id, idempotency_key=idempotency_key)
+    async def cancel(
+        self, *, patient_id: str, appointment_id: str, idempotency_key: str
+    ) -> BookingOutcome:
+        existing = await self._pms.get_appointment(appointment_id)
+        self._verify_owned_appointment(existing, patient_id)
+        mutation = await self._booking_store.start_mutation(
+            operation_type="cancel",
+            idempotency_key=idempotency_key,
+            remote_appointment_id=appointment_id,
+            request_payload={
+                "operation_type": "cancel",
+                "appointment_id": appointment_id,
+                "patient_id": patient_id,
+            },
+        )
+        try:
+            appointment = await self._pms.cancel_appointment(
+                appointment_id, idempotency_key=idempotency_key
+            )
+        except PmsUnknownOutcome as error:
+            await self._booking_store.mark_pending_verification(mutation.operation_id, error.code)
+            return BookingOutcome("pending_verification", str(mutation.operation_id), None)
+        except PmsError as error:
+            await self._booking_store.mark_failed(mutation.operation_id, error.code)
+            raise
+        await self._booking_store.mark_confirmed(mutation.operation_id, appointment.id)
+        await self._booking_store.release_prior_reservations(
+            appointment.id, except_operation_id=mutation.operation_id
+        )
+        return BookingOutcome("confirmed", str(mutation.operation_id), appointment)
+
+    @staticmethod
+    def _verify_owned_appointment(appointment: Appointment | None, patient_id: str) -> None:
+        if appointment is None:
+            raise LookupError("appointment not found")
+        if appointment.patient_id != patient_id:
+            raise IdentityVerificationError("appointment_patient_mismatch")

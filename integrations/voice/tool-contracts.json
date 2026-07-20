@@ -40,21 +40,21 @@
       "method": "POST",
       "path": "/v1/tools/list-patient-appointments",
       "purpose": "List appointments for the selected patient only",
-      "required": ["call_id", "patient_id"]
+      "required": ["session_id", "patient_id", "full_name"]
     },
     {
       "name": "reschedule_appointment",
       "method": "POST",
       "path": "/v1/tools/reschedule-appointment",
-      "purpose": "Move one selected appointment idempotently",
-      "required": ["call_id", "appointment_id", "starts_at", "ends_at", "idempotency_key"]
+      "purpose": "Move one selected appointment using a fresh availability token",
+      "required": ["session_id", "patient_id", "full_name", "appointment_id", "availability_token", "idempotency_key"]
     },
     {
       "name": "cancel_appointment",
       "method": "POST",
       "path": "/v1/tools/cancel-appointment",
       "purpose": "Cancel one selected appointment idempotently",
-      "required": ["call_id", "appointment_id", "idempotency_key"]
+      "required": ["session_id", "patient_id", "full_name", "appointment_id", "idempotency_key"]
     },
     {
       "name": "save_call_checkpoint",
