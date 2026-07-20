@@ -152,9 +152,19 @@ class ClinikoGateway:
         duration_minutes = appointment_type.get("duration_in_minutes")
         if not isinstance(duration_minutes, int) or duration_minutes <= 0:
             raise PmsTransientError("malformed_appointment_type")
+        eligible_practitioners = {
+            str(item["id"])
+            for item in await self._get_all(
+                f"appointment_types/{appointment_type_id}/practitioners",
+                collection="practitioners",
+            )
+            if isinstance(item.get("id"), str) and item["id"]
+        }
 
         slots: dict[tuple[str, datetime], AvailableTime] = {}
         for practitioner_id in practitioner_ids:
+            if practitioner_id not in eligible_practitioners:
+                continue
             for chunk_start, chunk_end in _date_chunks(starts_at, ends_at, self._timezone):
                 path = (
                     f"businesses/{business_id}/practitioners/{practitioner_id}/"

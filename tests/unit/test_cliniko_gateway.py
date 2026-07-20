@@ -13,6 +13,11 @@ class RecordingTransport:
         self.requests.append((method, path, kwargs))
         if path == "appointment_types/type-1":
             return {"id": "type-1", "duration_in_minutes": 30}
+        if path == "appointment_types/type-1/practitioners":
+            return {
+                "practitioners": [{"id": "practitioner-1"}],
+                "links": {"next": None},
+            }
         if path.endswith("available_times"):
             request_dates = kwargs["params"]
             if request_dates["from"] == "2026-07-20":
@@ -55,6 +60,36 @@ async def test_search_availability_chunks_paginates_and_deduplicates_slots() -> 
         {"from": "2026-07-20", "to": "2026-07-26", "per_page": 100},
         {"from": "2026-07-27", "to": "2026-07-29", "per_page": 100},
     ]
+
+
+async def test_search_availability_uses_practitioners_enabled_for_appointment_type() -> None:
+    class AppointmentTypeTransport:
+        def __init__(self) -> None:
+            self.availability_practitioners: list[str] = []
+
+        async def request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+            if path == "appointment_types/type-1":
+                return {"id": "type-1", "duration_in_minutes": 30}
+            if path == "appointment_types/type-1/practitioners":
+                return {
+                    "practitioners": [{"id": "practitioner-1"}],
+                    "links": {"next": None},
+                }
+            if path.endswith("available_times"):
+                self.availability_practitioners.append(path.split("/")[3])
+                return {"available_times": [], "links": {"next": None}}
+            raise AssertionError(f"unexpected request: {method} {path} {kwargs}")
+
+    transport = AppointmentTypeTransport()
+    await ClinikoGateway(transport).search_available_times(
+        business_id="business-1",
+        practitioner_ids=["practitioner-1", "practitioner-2"],
+        appointment_type_id="type-1",
+        starts_at=datetime(2026, 7, 20, 0, 0, tzinfo=UTC),
+        ends_at=datetime(2026, 7, 21, 0, 0, tzinfo=UTC),
+    )
+
+    assert transport.availability_practitioners == ["practitioner-1"]
 
 
 async def test_create_appointment_adds_a_reconciliation_marker() -> None:
