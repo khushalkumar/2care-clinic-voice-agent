@@ -79,31 +79,30 @@ class ClinikoGateway:
             return []
         return [patient]
 
+    async def create_patient(
+        self, *, full_name: str, phone_e164: str, idempotency_key: str
+    ) -> Patient:
+        parts = full_name.split()
+        if len(parts) < 2:
+            raise PmsValidationError("full_name_required")
+        payload = await self._client.request(
+            "POST",
+            "patients",
+            json={
+                "first_name": parts[0],
+                "last_name": " ".join(parts[1:]),
+                "patient_phone_numbers": [{"number": phone_e164, "phone_type": "Mobile"}],
+            },
+        )
+        del idempotency_key
+        return _patient(payload)
+
     async def get_patient(self, patient_id: str) -> Patient | None:
         try:
             payload = await self._client.request("GET", f"patients/{patient_id}")
         except PmsValidationError:
             return None
-        identifier = payload.get("id")
-        first_name = payload.get("first_name")
-        last_name = payload.get("last_name")
-        phones = payload.get("patient_phone_numbers")
-        name_parts = (identifier, first_name, last_name)
-        if not all(isinstance(value, str) and value for value in name_parts):
-            raise PmsTransientError("malformed_patient")
-        assert isinstance(identifier, str)
-        assert isinstance(first_name, str)
-        assert isinstance(last_name, str)
-        if not isinstance(phones, list) or not phones or not isinstance(phones[0], dict):
-            raise PmsTransientError("malformed_patient")
-        phone = phones[0].get("normalized_number")
-        if not isinstance(phone, str) or not phone:
-            raise PmsTransientError("malformed_patient")
-        return Patient(
-            id=identifier,
-            full_name=f"{first_name} {last_name}",
-            phone_e164=f"+{phone.lstrip('+')}",
-        )
+        return _patient(payload)
 
     async def get_patient_appointments(self, patient_id: str) -> Sequence[Appointment]:
         appointments = await self._get_all(
@@ -316,6 +315,29 @@ def _parse_timestamp(raw: object, *, error_code: str) -> datetime:
     if result.tzinfo is None or result.utcoffset() is None:
         raise PmsValidationError(error_code)
     return result.astimezone(UTC)
+
+
+def _patient(payload: dict[str, Any]) -> Patient:
+    identifier = payload.get("id")
+    first_name = payload.get("first_name")
+    last_name = payload.get("last_name")
+    phones = payload.get("patient_phone_numbers")
+    name_parts = (identifier, first_name, last_name)
+    if not all(isinstance(value, str) and value for value in name_parts):
+        raise PmsTransientError("malformed_patient")
+    assert isinstance(identifier, str)
+    assert isinstance(first_name, str)
+    assert isinstance(last_name, str)
+    if not isinstance(phones, list) or not phones or not isinstance(phones[0], dict):
+        raise PmsTransientError("malformed_patient")
+    phone = phones[0].get("normalized_number")
+    if not isinstance(phone, str) or not phone:
+        raise PmsTransientError("malformed_patient")
+    return Patient(
+        id=identifier,
+        full_name=f"{first_name} {last_name}",
+        phone_e164=f"+{phone.lstrip('+')}",
+    )
 
 
 def _appointment(payload: dict[str, Any]) -> Appointment:

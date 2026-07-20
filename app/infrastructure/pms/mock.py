@@ -136,6 +136,33 @@ class MockPmsGateway:
             ).all()
         return [Patient(row.id, row.full_name, row.phone_e164) for row in rows]
 
+    async def create_patient(
+        self, *, full_name: str, phone_e164: str, idempotency_key: str
+    ) -> Patient:
+        del idempotency_key
+        existing = await self.find_patients_by_phone(phone_e164)
+        normalized_name = " ".join(full_name.casefold().split())
+        for patient in existing:
+            if " ".join(patient.full_name.casefold().split()) == normalized_name:
+                return patient
+        parts = full_name.split()
+        if len(parts) < 2:
+            raise PmsValidationError("full_name_required")
+        patient = Patient(
+            id=f"patient-{uuid4().hex}",
+            full_name=" ".join(parts),
+            phone_e164=phone_e164,
+        )
+        async with self.session_factory() as session, session.begin():
+            session.add(
+                MockPmsPatient(
+                    id=patient.id,
+                    full_name=patient.full_name,
+                    phone_e164=patient.phone_e164,
+                )
+            )
+        return patient
+
     async def get_patient(self, patient_id: str) -> Patient | None:
         async with self.session_factory() as session:
             row = await session.get(MockPmsPatient, patient_id)

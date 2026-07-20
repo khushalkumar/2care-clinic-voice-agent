@@ -74,6 +74,8 @@ def test_retell_tools_bind_availability_to_bootstrapped_session() -> None:
     assert '"platform_call_id": "retell-staging-web-demo"' not in provisioner
     assert "Use the `session_id` returned by `bootstrap_call`" in prompt
     assert "for both `search_availability` and `book_appointment`" in prompt
+    assert "patient_lookup.mode` as `new_patient`" in prompt
+    assert "patient_id` as exactly" in prompt
 
 
 def test_retell_web_fallbacks_use_valid_inbound_call_values() -> None:

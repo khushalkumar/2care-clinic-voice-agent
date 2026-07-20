@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
-from app.application.ports.pms import PmsGateway
+from app.application.ports.pms import Patient, PmsGateway, PmsValidationError
 from app.infrastructure.database.call_store import (
     CallSessionRecord,
     CallStore,
@@ -73,6 +73,49 @@ class CallService:
             raise CallAuthorizationError("full_name_mismatch")
         if not await self._store.bind_patient(session_id, patient_id, now=self._clock()):
             raise CallAuthorizationError("patient_mismatch")
+
+    async def register_new_patient(
+        self, session_id: UUID, full_name: str, *, idempotency_key: str
+    ) -> Patient:
+        session = await self.require_active_session(session_id)
+        supplied_name = " ".join(full_name.casefold().split())
+        if not supplied_name:
+            raise CallAuthorizationError("full_name_required")
+
+        if session.patient_id is not None:
+            await self.authorize_patient(session_id, session.patient_id, full_name)
+            patient = await self._pms.get_patient(session.patient_id)
+            if patient is None:
+                raise CallAuthorizationError("patient_not_found")
+            return patient
+
+        existing = await self._pms.find_patients_by_phone(session.caller_phone_e164)
+        matching = [
+            patient
+            for patient in existing
+            if " ".join(patient.full_name.casefold().split()) == supplied_name
+        ]
+        if len(matching) == 1:
+            patient = matching[0]
+        elif existing:
+            raise CallAuthorizationError("full_name_mismatch")
+        else:
+            try:
+                patient = await self._pms.create_patient(
+                    full_name=full_name.strip(),
+                    phone_e164=session.caller_phone_e164,
+                    idempotency_key=idempotency_key,
+                )
+            except PmsValidationError as error:
+                raise CallAuthorizationError(error.code) from error
+
+        if patient.phone_e164 != session.caller_phone_e164:
+            raise CallAuthorizationError("patient_phone_mismatch")
+        if " ".join(patient.full_name.casefold().split()) != supplied_name:
+            raise CallAuthorizationError("full_name_mismatch")
+        if not await self._store.bind_patient(session_id, patient.id, now=self._clock()):
+            raise CallAuthorizationError("patient_mismatch")
+        return patient
 
     async def require_active_session(self, session_id: UUID) -> CallSessionRecord:
         session = await self._store.get(session_id)

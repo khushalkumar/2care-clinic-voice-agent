@@ -214,6 +214,38 @@ async def test_patient_lookup_uses_the_configured_phone_mapping() -> None:
     ]
 
 
+async def test_create_patient_sends_name_and_phone_to_cliniko() -> None:
+    class CreatePatientTransport:
+        def __init__(self) -> None:
+            self.json: dict[str, Any] | None = None
+
+        async def request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+            assert (method, path) == ("POST", "patients")
+            self.json = kwargs["json"]
+            return {
+                "id": "patient-new",
+                "first_name": "Krishal",
+                "last_name": "Kumar",
+                "patient_phone_numbers": [{"normalized_number": "919900000099"}],
+            }
+
+    transport = CreatePatientTransport()
+    patient = await ClinikoGateway(transport).create_patient(
+        full_name="Krishal Kumar",
+        phone_e164="+919900000099",
+        idempotency_key="new-patient-1",
+    )
+
+    assert patient == Patient(
+        id="patient-new", full_name="Krishal Kumar", phone_e164="+919900000099"
+    )
+    assert transport.json == {
+        "first_name": "Krishal",
+        "last_name": "Kumar",
+        "patient_phone_numbers": [{"number": "+919900000099", "phone_type": "Mobile"}],
+    }
+
+
 async def test_patient_appointments_use_the_documented_patient_filter() -> None:
     class AppointmentTransport:
         async def request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:

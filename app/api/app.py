@@ -400,10 +400,19 @@ def create_app(
 
     @app.post("/v1/tools/book-appointment")
     async def book_appointment(payload: BookAppointmentRequest) -> dict[str, Any]:
-        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
+        patient_id = payload.patient_id
+        if patient_id == "new_patient":
+            patient = await calls.register_new_patient(
+                payload.session_id,
+                payload.full_name,
+                idempotency_key=payload.idempotency_key,
+            )
+            patient_id = patient.id
+        else:
+            await calls.authorize_patient(payload.session_id, patient_id, payload.full_name)
         outcome = await booking.book(
             session_id=str(payload.session_id),
-            patient_id=payload.patient_id,
+            patient_id=patient_id,
             full_name=payload.full_name,
             availability_token=payload.availability_token,
             idempotency_key=payload.idempotency_key,
