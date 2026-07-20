@@ -91,3 +91,30 @@ def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
     assert "spoken_label" in prompt
     assert "one slot at a time" in prompt
     assert "Slot one" in prompt
+
+
+def test_retell_prompt_contains_explicit_safety_and_recovery_invariants() -> None:
+    prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
+
+    required_rules = [
+        "FULL_NAME_GATE",
+        "FRESH_AVAILABILITY_GATE",
+        "NO_FALSE_CONFIRMATION",
+        "NO_CLINICAL_ADVICE",
+        "HONEST_HUMAN_FOLLOWUP",
+        "DROPPED_CALL_RECOVERY",
+        "authoritative tool output as call state",
+        "If the caller interrupts",
+        "pending_verification",
+        "emergency or potentially urgent symptom",
+        "missed clinic call",
+    ]
+    assert all(rule in prompt for rule in required_rules)
+
+
+def test_retell_prompt_requires_fresh_search_after_conflict() -> None:
+    prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
+
+    assert "stale, a slot loses a race" in prompt
+    assert "again, and offer fresh alternatives" in prompt
+    assert "Never reuse a stale token" in prompt
