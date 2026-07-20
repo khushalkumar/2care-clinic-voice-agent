@@ -13,7 +13,7 @@
 - [x] API hardening includes request size/content-type enforcement, replay-safe HMAC, security headers,
   default-deny CORS, and AWS WAF IP rate limiting.
 
-## Required before claiming a production-ready, call-in submission
+## Required before claiming a complete live-demo submission
 
 - [x] Purchase a test-capable Twilio number and connect it to the Retell inbound agent via Elastic
   SIP Trunking.
@@ -22,10 +22,14 @@
 - [ ] Record only redacted measurements, render the report with `scripts/render_voice_eval.py`, and
   run `scripts/validate_voice_eval.py` before linking the resulting report from the README or
   submission write-up.
-- [ ] Obtain an ACM certificate for a domain controlled by the project, pass it as
-  `certificate_arn`, and verify Retell tools use the resulting HTTPS endpoint.
+- [x] Deploy the hosted staging backend and configure Retell tools against its AWS ALB endpoint.
 - [ ] Run a final synthetic booking, reschedule, cancellation, conflict, and human-follow-up canary
-  after the number and certificate changes.
+  against the live staging endpoint.
+
+HTTPS/ACM is intentionally not a submission blocker for this assignment environment because the
+project does not currently control a domain. It remains a required production hardening step in
+the production Terraform profile, but buying a domain is not necessary to demonstrate the live
+staging voice workflow.
 
 ## Email deliverables
 

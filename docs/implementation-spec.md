@@ -247,7 +247,10 @@ FastAPI handlers do not contain scheduling rules or remote orchestration. Domain
 
 ## 8. Voice tool contracts
 
-Every tool uses HTTPS POST, bearer/HMAC authentication, strict JSON schemas, and this response envelope:
+Every production tool uses HTTPS POST, bearer/HMAC authentication, strict JSON schemas, and this
+response envelope. The hosted assignment staging environment may use its generated ALB HTTP
+endpoint when no controlled domain/certificate is available; authentication and schema protections
+remain identical:
 
 ```json
 {

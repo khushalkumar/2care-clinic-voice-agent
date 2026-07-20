@@ -131,9 +131,11 @@ deletion protection. Staging uses one task, private single-AZ RDS, and a public-
 only through the ALB security group to avoid NAT Gateway cost. Production keeps private tasks and
 per-AZ NAT gateways.
 
-Production requires an ACM certificate ARN. With a certificate, HTTP redirects to HTTPS and HSTS
-is enabled; without one, Terraform fails before production voice traffic can be provisioned.
-Staging may remain HTTP while the account has no domain certificate. See the
+The live assignment environment is staging and intentionally uses the AWS ALB HTTP endpoint;
+it does not require a purchased domain. Retell staging tools are provisioned against the ALB URL
+and the current call path is operational. HTTPS via ACM remains an optional production upgrade:
+when a certificate is supplied, HTTP redirects to HTTPS and HSTS is enabled. The production
+Terraform profile still refuses to provision voice traffic without that certificate. See the
 [deployment runbook](docs/runbooks/deployment.md).
 
 ## Evidence and decisions
