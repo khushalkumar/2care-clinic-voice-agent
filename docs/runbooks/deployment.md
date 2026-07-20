@@ -10,7 +10,7 @@
 8. Deploy the immutable image SHA. Wait for healthy ALB targets and steady ECS tasks.
 9. Check `/live`, `/ready`, logs, 5xx, DLQ, and database connections.
 10. Run one synthetic search/book/cancel canary and verify PostgreSQL plus PMS state.
-11. Create and test the Retell agent against the HTTPS tool endpoint. Route the voice number only after the backend canary passes.
+11. Create and test the Retell agent against the HTTPS tool endpoint. Route the voice number only after the backend canary passes. The current staging PSTN route is Twilio `+1 417 742 8846` -> Elastic SIP Trunk `2care-retell-staging` -> Retell custom telephony number `2care Twilio staging` -> inbound agent `2care Physiotattva Bilingual Receptionist (Staging)`.
 
 Rollback the ECS service to the previous task definition if application health regresses. Do not
 blindly downgrade schema. Prefer a forward fix; use Alembic downgrade only when that exact

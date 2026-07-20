@@ -10,7 +10,8 @@ PMS failure handling.
 The backend is live in AWS staging behind an ALB, backed by RDS PostgreSQL and Cliniko.
 The deployment has passed `/live` and dependency-aware `/ready` checks. Retell agent provisioning
 is versioned in this repository and runs after each staging deployment. The HTTPS web-call test is
-published through GitHub Pages; an independently callable PSTN number remains pending purchase.
+published through GitHub Pages, and the Twilio number `+1 417 742 8846` is connected to Retell
+through a Twilio Elastic SIP Trunk for inbound PSTN testing.
 
 - The test suite covers the API, booking state, calls, recovery, and voice assets.
 - Booking races are enforced by PostgreSQL exclusion constraints.
@@ -37,6 +38,17 @@ not claimed until the 30-call English/Hindi/Hinglish bake-off has been run using
 recovery, component latency, and cost per completed conversation.
 
 ## Live voice test
+
+Call the live test number:
+
+```text
++1 417 742 8846
+```
+
+The number is a Twilio US number attached to the `2care-retell-staging` Elastic SIP Trunk. Twilio
+termination is authenticated with the Retell SBC IP ACL documented by Retell, origination routes to
+`sip:sip.retellai.com`, and Retell imports the number as `2care Twilio staging` with inbound calls
+assigned to `2care Physiotattva Bilingual Receptionist (Staging) / V0 - staging (Draft)`.
 
 The browser client is hosted at
 [`https://khushalkumar.github.io/2care-clinic-voice-agent/`](https://khushalkumar.github.io/2care-clinic-voice-agent/).

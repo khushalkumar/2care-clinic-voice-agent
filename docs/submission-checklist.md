@@ -11,7 +11,8 @@
 
 ## Required before claiming a production-ready, call-in submission
 
-- [ ] Purchase a test-capable Twilio or Plivo number and connect it to the Retell agent.
+- [x] Purchase a test-capable Twilio number and connect it to the Retell inbound agent via Elastic
+  SIP Trunking.
 - [ ] Place English, Hindi, and Hinglish calls against the number. Run every scenario in
   `evals/scenarios/core.json`, including interruption and callback recovery.
 - [ ] Record only redacted measurements, render the report with `scripts/render_voice_eval.py`, and
@@ -24,6 +25,7 @@
 ## Email deliverables
 
 Send the repository link, write-up/README link, prompt location
-(`integrations/voice/retell/prompt.md`), live test number, and live test instructions to
+(`integrations/voice/retell/prompt.md`), live test number `+1 417 742 8846`, and live test
+instructions to
 `tech@2care.ai`, `p@2care.ai`, and `s@2care.ai`. Do not include API keys, web-call URLs, patient
 details, or recordings in the email.
