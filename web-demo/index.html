@@ -44,8 +44,9 @@
       }
 
       if (!accessToken) {
+        setState("Token needed", true);
         status.textContent = "A short-lived web-call token is required.";
-        hint.textContent = "Generate a URL with scripts/create_retell_web_call.mjs.";
+        hint.textContent = "Use a generated web-call link, or call the live phone number in the README.";
       } else {
         client = new RetellWebClient();
         setState("Start call");
