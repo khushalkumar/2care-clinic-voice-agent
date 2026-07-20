@@ -21,6 +21,7 @@ from app.application.booking_service import BookingService, IdentityVerification
 from app.application.call_service import CallService
 from app.application.ports.pms import PmsConflict, PmsError, PmsGateway
 from app.application.request_auth import RequestAuthenticator, RequestAuthError, SignedRequest
+from app.application.slot_presentation import spoken_slot_label
 from app.infrastructure.database.booking_store import BookingStore, SlotAlreadyReserved
 from app.infrastructure.database.call_store import CallStore, StartCall
 from app.infrastructure.database.replay_store import PostgresReplayStore
@@ -297,6 +298,7 @@ def create_app(
                     "appointment_type_id": item.slot.appointment_type_id,
                     "starts_at": item.slot.starts_at.isoformat(),
                     "ends_at": item.slot.ends_at.isoformat(),
+                    "spoken_label": spoken_slot_label(item.slot.starts_at, item.slot.ends_at),
                     "availability_token": item.availability_token,
                 }
                 for item in offered

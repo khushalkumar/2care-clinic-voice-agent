@@ -76,7 +76,7 @@ const tools = [
   ),
   customTool(
     "search_availability",
-    "Search fresh live availability. Call again whenever the caller changes any scheduling constraint.",
+    "Search fresh live availability. Read each result's spoken_label exactly as returned. Call again whenever the caller changes any scheduling constraint.",
     "/v1/tools/search-availability",
     {
       type: "object",

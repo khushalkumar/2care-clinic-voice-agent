@@ -73,3 +73,11 @@ def test_retell_web_fallbacks_use_valid_inbound_call_values() -> None:
 
     assert 'direction: "inbound"' in provisioner
     assert 'agent_number: "+14177428846"' in provisioner
+
+
+def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
+    prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
+
+    assert "spoken_label" in prompt
+    assert "one slot at a time" in prompt
+    assert "Slot one" in prompt

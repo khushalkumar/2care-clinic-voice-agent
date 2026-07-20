@@ -108,6 +108,7 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         offered = search.json()["slots"]
         assert offered
         assert all("availability_token" in slot for slot in offered)
+        assert all("spoken_label" in slot for slot in offered)
 
         replay = await client.post(
             "/v1/tools/search-availability", content=search_body, headers=search_headers
