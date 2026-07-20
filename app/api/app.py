@@ -39,7 +39,7 @@ class ApiSettings:
 class SearchAvailabilityRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    call_id: str
+    session_id: UUID
     business_id: str
     practitioner_ids: list[str]
     appointment_type_id: str
@@ -50,7 +50,7 @@ class SearchAvailabilityRequest(BaseModel):
 class BookAppointmentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    call_id: str
+    session_id: UUID
     patient_id: str
     full_name: str
     availability_token: str
@@ -283,7 +283,7 @@ def create_app(
     @app.post("/v1/tools/search-availability")
     async def search_availability(payload: SearchAvailabilityRequest) -> dict[str, Any]:
         offered = await booking.search_availability(
-            call_id=payload.call_id,
+            session_id=str(payload.session_id),
             business_id=payload.business_id,
             practitioner_ids=payload.practitioner_ids,
             appointment_type_id=payload.appointment_type_id,
@@ -360,7 +360,7 @@ def create_app(
     @app.post("/v1/tools/book-appointment")
     async def book_appointment(payload: BookAppointmentRequest) -> dict[str, Any]:
         outcome = await booking.book(
-            call_id=payload.call_id,
+            session_id=str(payload.session_id),
             patient_id=payload.patient_id,
             full_name=payload.full_name,
             availability_token=payload.availability_token,

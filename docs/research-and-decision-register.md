@@ -461,12 +461,12 @@ sequenceDiagram
     B->>A: bootstrap_call(from_number, call_id)
     A->>D: Load all patients, callback and dropped-call context
     A-->>B: Resume state or request only missing identity fields
-    B->>A: search_availability(constraints)
+    B->>A: search_availability(session_id, constraints)
     A->>D: Query every eligible branch and practitioner
     A-->>B: Ranked live slots with query_id
     B-->>P: Offer concise options
     P->>B: Confirms one slot and full name
-    B->>A: book_appointment(slot_id, patient, idempotency_key)
+    B->>A: book_appointment(session_id, slot_id, patient, idempotency_key)
     A->>D: Atomic insert guarded by GiST exclusion constraint
     alt Slot was taken
         D-->>A: Exclusion violation

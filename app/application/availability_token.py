@@ -14,7 +14,7 @@ class AvailabilityTokenError(Exception):
 
 @dataclass(frozen=True, slots=True)
 class AvailabilityClaim:
-    call_id: str
+    session_id: str
     query_id: str
     business_id: str
     practitioner_id: str
@@ -61,7 +61,7 @@ class AvailabilityTokenService:
         )
         return f"{encoded_payload}.{signature}"
 
-    def verify(self, token: str, *, expected_call_id: str) -> AvailabilityClaim:
+    def verify(self, token: str, *, expected_session_id: str) -> AvailabilityClaim:
         try:
             encoded_payload, supplied_signature = token.split(".", maxsplit=1)
         except ValueError as error:
@@ -74,7 +74,7 @@ class AvailabilityTokenService:
         try:
             payload = json.loads(_decode(encoded_payload))
             claim = AvailabilityClaim(
-                call_id=payload["call_id"],
+                session_id=payload["session_id"],
                 query_id=payload["query_id"],
                 business_id=payload["business_id"],
                 practitioner_id=payload["practitioner_id"],
@@ -87,6 +87,6 @@ class AvailabilityTokenService:
             raise AvailabilityTokenError("malformed") from error
         if claim.expires_at <= self._clock():
             raise AvailabilityTokenError("expired")
-        if claim.call_id != expected_call_id:
-            raise AvailabilityTokenError("call_mismatch")
+        if claim.session_id != expected_session_id:
+            raise AvailabilityTokenError("session_mismatch")
         return claim

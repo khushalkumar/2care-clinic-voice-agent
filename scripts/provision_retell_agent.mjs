@@ -81,7 +81,7 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{call_id}} exactly." },
+        session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
         business_id: string,
         practitioner_ids: { type: "array", items: string },
         appointment_type_id: string,
@@ -89,7 +89,7 @@ const tools = [
         ends_at: { ...string, description: "Timezone-aware ISO 8601 timestamp." },
       },
       required: [
-        "call_id",
+        "session_id",
         "business_id",
         "practitioner_ids",
         "appointment_type_id",
@@ -105,13 +105,13 @@ const tools = [
     {
       type: "object",
       properties: {
-        call_id: { ...string, description: "Use {{call_id}} exactly." },
+        session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
         patient_id: string,
         full_name: string,
         availability_token: string,
         idempotency_key: string,
       },
-      required: ["call_id", "patient_id", "full_name", "availability_token", "idempotency_key"],
+      required: ["session_id", "patient_id", "full_name", "availability_token", "idempotency_key"],
     },
   ),
   customTool(

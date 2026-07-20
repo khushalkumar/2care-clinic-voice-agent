@@ -85,7 +85,7 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         assert oversized.status_code == 413
 
         search_payload = {
-            "call_id": "call-1",
+            "session_id": "00000000-0000-0000-0000-000000000001",
             "business_id": "jayanagar",
             "practitioner_ids": ["nadia-zainab"],
             "appointment_type_id": "initial-consultation",
@@ -117,7 +117,7 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         assert replay.json()["error"]["code"] == "replayed"
 
         book_payload = {
-            "call_id": "call-1",
+            "session_id": "00000000-0000-0000-0000-000000000001",
             "patient_id": "aarav-sharma",
             "full_name": "Aarav Sharma",
             "availability_token": offered[0]["availability_token"],
@@ -239,7 +239,7 @@ async def test_retell_platform_token_can_call_voice_tools(migrated_database_url:
             "/v1/tools/search-availability",
             headers={"X-2Care-Platform-Token": "r" * 32},
             json={
-                "call_id": "retell-call-1",
+                "session_id": "00000000-0000-0000-0000-000000000002",
                 "business_id": "jayanagar",
                 "practitioner_ids": ["nadia-zainab"],
                 "appointment_type_id": "initial-consultation",

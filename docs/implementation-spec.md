@@ -276,7 +276,7 @@ Rules:
 
 ### `search_availability`
 
-Input: call ID, service/appointment type, date window, time window, optional branch/practitioner, and search mode (`matching` or `earliest`).
+Input: backend call-session ID, service/appointment type, date window, time window, optional branch/practitioner, and search mode (`matching` or `earliest`).
 
 Output: up to three ranked slots, query ID/token, timezone, and applied constraints.
 
@@ -289,7 +289,7 @@ Rules:
 
 ### `book_appointment`
 
-Input: call ID, availability token, selected slot ID, full patient name, patient selector/new-patient data, and idempotency key.
+Input: backend call-session ID, availability token, selected slot ID, full patient name, patient selector/new-patient data, and idempotency key.
 
 Output: `confirmed`, `conflict`, `pending_verification`, or validation status, plus authoritative branch, practitioner, local date/time, and fee disclosure state.
 

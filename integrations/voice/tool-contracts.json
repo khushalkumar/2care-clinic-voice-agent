@@ -26,14 +26,14 @@
       "method": "POST",
       "path": "/v1/tools/search-availability",
       "purpose": "Get fresh conflict-free slots and opaque booking tokens",
-      "required": ["call_id", "business_id", "practitioner_ids", "appointment_type_id", "starts_at", "ends_at"]
+      "required": ["session_id", "business_id", "practitioner_ids", "appointment_type_id", "starts_at", "ends_at"]
     },
     {
       "name": "book_appointment",
       "method": "POST",
       "path": "/v1/tools/book-appointment",
       "purpose": "Book one offered slot with an unambiguous patient",
-      "required": ["call_id", "patient_id", "full_name", "availability_token", "idempotency_key"]
+      "required": ["session_id", "patient_id", "full_name", "availability_token", "idempotency_key"]
     },
     {
       "name": "list_patient_appointments",

@@ -52,7 +52,7 @@ class BookingService:
     async def search_availability(
         self,
         *,
-        call_id: str,
+        session_id: str,
         business_id: str,
         practitioner_ids: Sequence[str],
         appointment_type_id: str,
@@ -73,7 +73,7 @@ class BookingService:
                 slot,
                 self._tokens.issue(
                     AvailabilityClaim(
-                        call_id=call_id,
+                        session_id=session_id,
                         query_id=query_id,
                         business_id=slot.business_id,
                         practitioner_id=slot.practitioner_id,
@@ -90,13 +90,13 @@ class BookingService:
     async def book(
         self,
         *,
-        call_id: str,
+        session_id: str,
         patient_id: str,
         full_name: str,
         availability_token: str,
         idempotency_key: str,
     ) -> BookingOutcome:
-        claim = self._tokens.verify(availability_token, expected_call_id=call_id)
+        claim = self._tokens.verify(availability_token, expected_session_id=session_id)
         patient = await self._pms.get_patient(patient_id)
         supplied_name = " ".join(full_name.casefold().split())
         expected_name = " ".join(patient.full_name.casefold().split()) if patient else None

@@ -38,7 +38,7 @@ async def test_unknown_create_is_reconciled_without_a_duplicate(
     )
     try:
         offered = await service.search_availability(
-            call_id="recovery-call",
+            session_id="00000000-0000-0000-0000-000000000003",
             business_id="jayanagar",
             practitioner_ids=["nadia-zainab"],
             appointment_type_id="follow-up",
@@ -46,7 +46,7 @@ async def test_unknown_create_is_reconciled_without_a_duplicate(
             ends_at=datetime(2026, 7, 23, 5, 0, tzinfo=UTC),
         )
         pending = await service.book(
-            call_id="recovery-call",
+            session_id="00000000-0000-0000-0000-000000000003",
             patient_id="aarav-sharma",
             full_name="Aarav Sharma",
             availability_token=offered[0].availability_token,
