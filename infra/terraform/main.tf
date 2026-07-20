@@ -164,10 +164,15 @@ resource "aws_lb" "app" {
       condition     = var.environment != "production" || var.certificate_arn != null
       error_message = "Production voice traffic requires an ACM certificate ARN and HTTPS listener."
     }
+    precondition {
+      condition     = var.environment != "production" || var.enable_waf
+      error_message = "Production requires the WAF edge rate-limit policy to be enabled."
+    }
   }
 }
 
 resource "aws_wafv2_web_acl" "app" {
+  count = var.enable_waf ? 1 : 0
   name  = "${local.name}-edge"
   scope = "REGIONAL"
 
@@ -205,8 +210,9 @@ resource "aws_wafv2_web_acl" "app" {
 }
 
 resource "aws_wafv2_web_acl_association" "app" {
+  count        = var.enable_waf ? 1 : 0
   resource_arn = aws_lb.app.arn
-  web_acl_arn  = aws_wafv2_web_acl.app.arn
+  web_acl_arn  = aws_wafv2_web_acl.app[0].arn
 }
 
 resource "aws_lb_target_group" "app" {

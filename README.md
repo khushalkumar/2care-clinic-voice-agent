@@ -18,8 +18,8 @@ through a Twilio Elastic SIP Trunk for inbound PSTN testing.
 - The Cliniko adapter chunks live availability requests into its verified seven-calendar-day limit.
 - Live Cliniko availability and one synthetic patient/appointment write have been contract-verified.
 - HMAC authentication, replay prevention, request limits, opaque slot tokens, session-bound
-  patient authorization, strict security headers, default-deny CORS, and WAF rate limiting are
-  implemented and tested.
+  patient authorization, strict security headers, and default-deny CORS are implemented and
+  tested. WAF rate limiting is provisioned by the production Terraform profile.
 - Timeout-after-write reconciliation produces one appointment and never false confirmation.
 - OpenTofu validates the staging/production AWS configuration.
 - Seventeen multi-turn EN/HI/Hinglish scenarios are versioned under `evals/scenarios/`. The live

@@ -127,11 +127,13 @@ jobs:
           if [[ -n "${CERTIFICATE_ARN:-}" ]]; then
             CERTIFICATE_ARGS+=("-var=certificate_arn=${CERTIFICATE_ARN}")
           fi
+          WAF_ARGS=("-var=enable_waf=false")
           tofu apply -auto-approve \
             -var="environment=${ENVIRONMENT}" \
             -var="pms_provider=${PMS_PROVIDER}" \
             -var="container_image=${{ steps.image.outputs.uri }}" \
-            "${CERTIFICATE_ARGS[@]}"
+            "${CERTIFICATE_ARGS[@]}" \
+            "${WAF_ARGS[@]}"
 
       - name: Run database migrations
         env:

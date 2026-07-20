@@ -38,6 +38,12 @@ variable "certificate_arn" {
   nullable    = true
 }
 
+variable "enable_waf" {
+  type        = bool
+  description = "Enable the AWS WAF edge rate limit. Production requires this and deployer IAM permission."
+  default     = false
+}
+
 variable "desired_count_staging" {
   type    = number
   default = 1

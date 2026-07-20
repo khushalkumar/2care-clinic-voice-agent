@@ -11,9 +11,10 @@
   availability token and local exclusion-constraint reservation.
 - Browser CORS is disabled by default because Retell calls the API server-to-server. If a browser
   origin is ever needed, `CORS_ALLOWED_ORIGINS` accepts only explicit HTTP(S) origins and never `*`.
-- Responses include baseline browser hardening headers. AWS WAF applies a per-IP rate limit before
-  the ALB reaches the application; request size, content type, HMAC replay, and platform-token gates
-  remain enforced at the API.
+- Responses include baseline browser hardening headers. AWS WAF is an explicit production edge
+  control with a per-IP rate limit before the ALB; production Terraform refuses to proceed until
+  it is enabled and the deployer has WAF permissions. Staging keeps the API-level request size,
+  content type, HMAC replay, and platform-token gates active without requiring that IAM grant.
 - PostgreSQL exclusion constraints and idempotency keys remain authoritative if prompts fail.
 - The backend applies a configurable 60-minute same-day booking buffer by default; operators can
   change it with `SAME_DAY_BOOKING_BUFFER_MINUTES` without changing the voice prompt.
