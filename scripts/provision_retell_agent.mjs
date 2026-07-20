@@ -54,7 +54,7 @@ function customTool(name, description, path, parameters, options = {}) {
 const tools = [
   customTool(
     "clinic_catalog",
-    "Read the live clinic businesses, practitioners, and appointment types before searching availability. Never invent IDs.",
+    "Read the live clinic businesses, practitioners, and appointment types before searching availability. Present appointment types using branch_name and visit_type_name as separate fields, not the raw combined name. Never invent IDs.",
     "/v1/tools/clinic-catalog",
     { type: "object", properties: {} },
     { method: "GET", speakDuringExecution: false },
@@ -76,7 +76,7 @@ const tools = [
   ),
   customTool(
     "search_availability",
-    "Search fresh live availability. Read each result's spoken_label exactly as returned. Call again whenever the caller changes any scheduling constraint.",
+    "Search fresh live availability. Use the backend-generated spoken_date once for a grouped list and spoken_time_range for each slot; use spoken_label as the fallback for a cross-date slot. Call again whenever the caller changes any scheduling constraint.",
     "/v1/tools/search-availability",
     {
       type: "object",

@@ -22,7 +22,11 @@ from app.application.booking_service import BookingService, IdentityVerification
 from app.application.call_service import CallAuthorizationError, CallService
 from app.application.ports.pms import PmsConflict, PmsError, PmsGateway
 from app.application.request_auth import RequestAuthenticator, RequestAuthError, SignedRequest
-from app.application.slot_presentation import spoken_slot_label
+from app.application.slot_presentation import (
+    spoken_slot_date,
+    spoken_slot_label,
+    spoken_slot_time_range,
+)
 from app.infrastructure.database.booking_store import BookingStore, SlotAlreadyReserved
 from app.infrastructure.database.call_store import CallStore, StartCall
 from app.infrastructure.database.replay_store import PostgresReplayStore
@@ -314,6 +318,12 @@ def create_app(
                 {
                     "id": appointment_type.id,
                     "name": appointment_type.name,
+                    "branch_name": appointment_type.name.split(" - ", 1)[0]
+                    if " - " in appointment_type.name
+                    else None,
+                    "visit_type_name": appointment_type.name.split(" - ", 1)[1]
+                    if " - " in appointment_type.name
+                    else appointment_type.name,
                     "duration_minutes": appointment_type.duration_minutes,
                 }
                 for appointment_type in appointment_types
@@ -340,6 +350,10 @@ def create_app(
                     "starts_at": item.slot.starts_at.isoformat(),
                     "ends_at": item.slot.ends_at.isoformat(),
                     "spoken_label": spoken_slot_label(item.slot.starts_at, item.slot.ends_at),
+                    "spoken_date": spoken_slot_date(item.slot.starts_at),
+                    "spoken_time_range": spoken_slot_time_range(
+                        item.slot.starts_at, item.slot.ends_at
+                    ),
                     "availability_token": item.availability_token,
                 }
                 for item in offered

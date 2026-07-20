@@ -44,6 +44,24 @@ def spoken_slot_label(starts_at: datetime, ends_at: datetime) -> str:
     )
 
 
+def spoken_slot_date(starts_at: datetime) -> str:
+    """Return the local date once for a grouped slot list."""
+    if starts_at.tzinfo is None:
+        raise ValueError("slot time must be timezone-aware")
+    return _spoken_date(starts_at.astimezone(_INDIA_TIMEZONE))
+
+
+def spoken_slot_time_range(starts_at: datetime, ends_at: datetime) -> str:
+    """Return a compact local time range for slots sharing one date."""
+    if starts_at.tzinfo is None or ends_at.tzinfo is None:
+        raise ValueError("slot times must be timezone-aware")
+    local_start = starts_at.astimezone(_INDIA_TIMEZONE)
+    local_end = ends_at.astimezone(_INDIA_TIMEZONE)
+    if local_start.date() != local_end.date():
+        return spoken_slot_label(starts_at, ends_at)
+    return f"{_spoken_time(local_start)} to {_spoken_time(local_end)}"
+
+
 def _spoken_date(value: datetime) -> str:
     return f"{value.strftime('%A, %B')} {value.day}, {value.year}"
 

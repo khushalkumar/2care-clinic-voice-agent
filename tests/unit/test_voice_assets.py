@@ -91,6 +91,11 @@ def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
     assert "spoken_label" in prompt
     assert "one slot at a time" in prompt
     assert "Slot one" in prompt
+    assert "spoken_date" in prompt
+    assert "spoken_time_range" in prompt
+    assert "TWO_QUESTION_LIMIT" in prompt
+    assert "branch_name" in prompt
+    assert "visit_type_name" in prompt
 
 
 def test_retell_prompt_contains_explicit_safety_and_recovery_invariants() -> None:
