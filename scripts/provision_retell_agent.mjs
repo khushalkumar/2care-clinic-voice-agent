@@ -61,14 +61,14 @@ const tools = [
   ),
   customTool(
     "bootstrap_call",
-    "Create or resume a call session after the caller gives their phone number. Use Retell's call_id, direction, and agent_number system variables for call metadata.",
+    "Create or resume a call session using Retell's caller ID. Use {{from_number}} for caller_phone on inbound calls; do not ask the caller to repeat it. Use Retell's call_id, direction, and agent_number system variables for call metadata.",
     "/v1/tools/bootstrap-call",
     {
       type: "object",
       properties: {
         platform_call_id: { ...string, description: "Use {{call_id}} exactly." },
         direction: { ...string, enum: ["inbound"], description: "Use {{direction}} exactly." },
-        caller_phone: { ...string, description: "Caller phone in E.164 format." },
+        caller_phone: { ...string, description: "Use {{from_number}} exactly for the inbound caller phone in E.164 format. Never ask for it when caller ID is available." },
         called_phone: { ...string, description: "Use {{agent_number}} exactly." },
       },
       required: ["platform_call_id", "direction", "caller_phone", "called_phone"],
@@ -76,7 +76,7 @@ const tools = [
   ),
   customTool(
     "search_availability",
-    "Search fresh live availability. Use the backend-generated spoken_date once for a grouped list and spoken_time_range for each slot; use spoken_label as the fallback for a cross-date slot. Call again whenever the caller changes any scheduling constraint.",
+    "Search fresh live availability. For same-date results, state spoken_date once and present spoken_time_range values as a compact numbered list; never repeat the weekday before every slot. Use spoken_label as the fallback for a cross-date slot. Call again whenever the caller changes any scheduling constraint.",
     "/v1/tools/search-availability",
     {
       type: "object",
@@ -188,7 +188,7 @@ const llmPayload = {
   model_temperature: 0,
   tool_call_strict_mode: true,
   begin_message:
-    "Hello, I am the automated appointment assistant for Physiotattva. I can help in English or Hindi. May I have your phone number to get started?",
+    "Hello. I am the automated appointment assistant for Physiotattva. I can help in English or Hindi. How may I help you today?",
   general_prompt: prompt,
   general_tools: tools,
   default_dynamic_variables: {
@@ -205,6 +205,7 @@ function agentPayload(llmId) {
     response_engine: { type: "retell-llm", llm_id: llmId, version: 0 },
     voice_id: "11labs-Monika",
     voice_model: "eleven_multilingual_v2",
+    voice_speed: 0.95,
     language: ["en-IN", "hi-IN"],
     responsiveness: 0.9,
     interruption_sensitivity: 0.85,

@@ -80,16 +80,29 @@ def test_retell_tools_bind_availability_to_bootstrapped_session() -> None:
 
 def test_retell_web_fallbacks_use_valid_inbound_call_values() -> None:
     provisioner = (ROOT / "scripts/provision_retell_agent.mjs").read_text()
+    web_call = (ROOT / "scripts/create_retell_web_call.mjs").read_text()
 
     assert 'direction: "inbound"' in provisioner
     assert 'agent_number: "+14177428846"' in provisioner
+    assert 'caller_phone: "+919900000001"' in web_call
+
+
+def test_retell_prompt_uses_caller_id_and_a_calm_opening() -> None:
+    provisioner = (ROOT / "scripts/provision_retell_agent.mjs").read_text()
+    prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
+
+    assert "caller to" in prompt
+    assert "telephony already provides" in prompt
+    assert "{{from_number}}" in provisioner
+    assert "May I have your phone number" not in provisioner
+    assert "voice_speed: 0.95" in provisioner
 
 
 def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
     prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
 
     assert "spoken_label" in prompt
-    assert "one slot at a time" in prompt
+    assert "one compact grouped list" in prompt
     assert "Slot one" in prompt
     assert "spoken_date" in prompt
     assert "spoken_time_range" in prompt
@@ -99,6 +112,9 @@ def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
     assert "this week" in prompt
     assert "next week" in prompt
     assert "exact weekday and date" in prompt
+    assert "say the date only once" in prompt
+    assert "On Tuesday, I found three" in prompt
+    assert "Never say the weekday before every slot" in prompt
 
 
 def test_retell_prompt_contains_explicit_safety_and_recovery_invariants() -> None:

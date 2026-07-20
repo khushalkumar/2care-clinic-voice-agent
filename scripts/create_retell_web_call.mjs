@@ -13,6 +13,7 @@ const response = await fetch("https://api.retellai.com/v2/create-web-call", {
     metadata: { purpose: "staging-manual-voice-test" },
     retell_llm_dynamic_variables: {
       platform_call_id: `retell-web-${crypto.randomUUID()}`,
+      caller_phone: "+919900000001",
       called_phone: "+910000000000",
     },
   }),
