@@ -96,6 +96,9 @@ def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
     assert "TWO_QUESTION_LIMIT" in prompt
     assert "branch_name" in prompt
     assert "visit_type_name" in prompt
+    assert "this week" in prompt
+    assert "next week" in prompt
+    assert "exact weekday and date" in prompt
 
 
 def test_retell_prompt_contains_explicit_safety_and_recovery_invariants() -> None:

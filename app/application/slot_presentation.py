@@ -35,12 +35,13 @@ def spoken_slot_label(starts_at: datetime, ends_at: datetime) -> str:
 
     local_start = starts_at.astimezone(_INDIA_TIMEZONE)
     local_end = ends_at.astimezone(_INDIA_TIMEZONE)
-    start_date = _spoken_date(local_start)
+    include_year = local_start.year != local_end.year
+    start_date = _spoken_date(local_start, include_year=include_year)
     if local_start.date() == local_end.date():
         return f"{start_date} from {_spoken_time(local_start)} to {_spoken_time(local_end)}"
     return (
         f"{start_date} at {_spoken_time(local_start)} to "
-        f"{_spoken_date(local_end)} at {_spoken_time(local_end)}"
+        f"{_spoken_date(local_end, include_year=include_year)} at {_spoken_time(local_end)}"
     )
 
 
@@ -62,8 +63,9 @@ def spoken_slot_time_range(starts_at: datetime, ends_at: datetime) -> str:
     return f"{_spoken_time(local_start)} to {_spoken_time(local_end)}"
 
 
-def _spoken_date(value: datetime) -> str:
-    return f"{value.strftime('%A, %B')} {value.day}, {value.year}"
+def _spoken_date(value: datetime, *, include_year: bool = False) -> str:
+    date = f"{value.strftime('%A, %B')} {value.day}"
+    return f"{date}, {value.year}" if include_year else date
 
 
 def _spoken_time(value: datetime) -> str:
