@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -6,10 +7,22 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.infrastructure.database import Base
+from app.runtime import database_url_from_mapping
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+
+def _configure_database_url() -> None:
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    if not database_url and os.environ.get("DB_HOST", "").strip():
+        database_url = database_url_from_mapping(os.environ)
+    if database_url:
+        config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
+
+
+_configure_database_url()
 
 target_metadata = Base.metadata
 

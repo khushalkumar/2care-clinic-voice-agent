@@ -41,6 +41,18 @@ def _patient_mapping(values: Mapping[str, str], *, required: bool) -> dict[str, 
     return parsed
 
 
+def database_url_from_mapping(values: Mapping[str, str]) -> str:
+    database_url = values.get("DATABASE_URL", "").strip()
+    if database_url:
+        return database_url
+    host = _required(values, "DB_HOST")
+    port = _required(values, "DB_PORT")
+    name = _required(values, "DB_NAME")
+    username = quote_plus(_required(values, "DB_USERNAME"))
+    password = quote_plus(_required(values, "DB_PASSWORD"))
+    return f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{name}?ssl=require"
+
+
 @dataclass(frozen=True, slots=True)
 class RuntimeSettings:
     app_env: str
@@ -57,16 +69,7 @@ class RuntimeSettings:
     @classmethod
     def from_mapping(cls, values: Mapping[str, str]) -> "RuntimeSettings":
         app_env = values.get("APP_ENV", "local").strip().lower()
-        database_url = values.get("DATABASE_URL", "").strip()
-        if not database_url:
-            host = _required(values, "DB_HOST")
-            port = _required(values, "DB_PORT")
-            name = _required(values, "DB_NAME")
-            username = quote_plus(_required(values, "DB_USERNAME"))
-            password = quote_plus(_required(values, "DB_PASSWORD"))
-            database_url = (
-                f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{name}?ssl=require"
-            )
+        database_url = database_url_from_mapping(values)
         pms_provider = values.get("PMS_PROVIDER", "mock").strip().lower()
         request_secret = _required(values, "REQUEST_HMAC_SECRET")
         availability_secret = _required(values, "AVAILABILITY_TOKEN_SECRET")

@@ -127,6 +127,62 @@ jobs:
             -var="pms_provider=${PMS_PROVIDER}" \
             -var="container_image=${{ steps.image.outputs.uri }}"
 
+      - name: Run database migrations
+        env:
+          ECS_CLUSTER: 2care-voice-staging
+          ECS_SERVICE: api
+        run: |
+          TASK_DEFINITION="$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)"
+          if [[ -z "$TASK_DEFINITION" || "$TASK_DEFINITION" == "None" ]]; then
+            echo "Unable to resolve the staging task definition" >&2
+            exit 1
+          fi
+
+          NETWORK_CONFIG="$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
+            --output json)"
+          SUBNETS="$(jq -r '.subnets | join(",")' <<<"$NETWORK_CONFIG")"
+          SECURITY_GROUPS="$(jq -r '.securityGroups | join(",")' <<<"$NETWORK_CONFIG")"
+          ASSIGN_PUBLIC_IP="$(jq -r '.assignPublicIp' <<<"$NETWORK_CONFIG")"
+
+          RUN_TASK_RESPONSE="$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUPS],assignPublicIp=$ASSIGN_PUBLIC_IP}" \
+            --overrides '{"containerOverrides":[{"name":"api","command":["alembic","upgrade","head"]}]}' \
+            --output json)"
+          if [[ "$(jq '.failures | length' <<<"$RUN_TASK_RESPONSE")" != "0" ]]; then
+            jq -c '.failures' <<<"$RUN_TASK_RESPONSE" >&2
+            exit 1
+          fi
+          MIGRATION_TASK_ARN="$(jq -r '.tasks[0].taskArn // empty' <<<"$RUN_TASK_RESPONSE")"
+          if [[ -z "$MIGRATION_TASK_ARN" ]]; then
+            echo "ECS did not start the migration task" >&2
+            exit 1
+          fi
+
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$MIGRATION_TASK_ARN"
+          MIGRATION_EXIT_CODE="$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$MIGRATION_TASK_ARN" \
+            --query 'tasks[0].containers[?name==`api`].exitCode | [0]' \
+            --output text)"
+          if [[ "$MIGRATION_EXIT_CODE" != "0" ]]; then
+            aws ecs describe-tasks \
+              --cluster "$ECS_CLUSTER" \
+              --tasks "$MIGRATION_TASK_ARN" \
+              --query 'tasks[0].containers[?name==`api`].[lastStatus,exitCode,reason]' \
+              --output table >&2
+            exit 1
+          fi
+
       - name: Configure Retell staging agent
         env:
           RETELL_API_KEY: ${{ secrets.RETELL_API_KEY }}

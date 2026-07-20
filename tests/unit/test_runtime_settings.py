@@ -4,7 +4,7 @@ import pytest
 
 import app.runtime as runtime
 from app.api.app import ApiSettings
-from app.runtime import RuntimeSettings, build_runtime_app
+from app.runtime import RuntimeSettings, build_runtime_app, database_url_from_mapping
 
 
 def _environment() -> dict[str, str]:
@@ -77,6 +77,23 @@ def test_ecs_database_fields_build_an_encrypted_url() -> None:
     settings = RuntimeSettings.from_mapping(environment)
 
     assert settings.database_url == (
+        "postgresql+asyncpg://voice_agent_admin:p%40ss+word@"
+        "database.internal:5432/voice_agent?ssl=require"
+    )
+
+
+def test_database_url_builder_is_available_to_migrations() -> None:
+    environment = _environment()
+    environment.pop("DATABASE_URL")
+    environment |= {
+        "DB_HOST": "database.internal",
+        "DB_PORT": "5432",
+        "DB_NAME": "voice_agent",
+        "DB_USERNAME": "voice_agent_admin",
+        "DB_PASSWORD": "p@ss word",
+    }
+
+    assert database_url_from_mapping(environment) == (
         "postgresql+asyncpg://voice_agent_admin:p%40ss+word@"
         "database.internal:5432/voice_agent?ssl=require"
     )
