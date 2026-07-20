@@ -284,7 +284,7 @@ def main():
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(18)
     set_run(p.add_run("Voice AI Engineer Assignment | Submission Write-up"), size=14, color=MUTED)
-    add_note(doc, "Submission status", "The implementation is live and independently callable. This document reports the completed engineering work and the observed pilot evidence honestly. The complete 17-scenario live bake-off required by the assignment has not yet been run; the limitations section identifies this explicitly.")
+    add_note(doc, "Submission status", "The implementation is live and independently callable. This document reports the completed engineering work and the observed pilot evidence honestly. The complete 51-call multilingual bake-off required by the assignment has not yet been run; the limitations section identifies this explicitly.")
 
     add_heading(doc, "1. Executive Summary", 1)
     add_para(doc, "This project implements a production-oriented bilingual voice receptionist for two Physiotattva demonstration clinics in Bengaluru: Jayanagar and Indiranagar. Patients can book, reschedule, cancel, recover from dropped calls, request human follow-up, and use English, Hindi, or natural Hinglish code-switching.")
@@ -301,7 +301,7 @@ def main():
         ("Database", "AWS RDS PostgreSQL"),
         ("PMS", "Cliniko, shard au1"),
         ("Test browser", "https://khushalkumar.github.io/2care-clinic-voice-agent/"),
-        ("Staging deployment", "GitHub Actions deploy-staging run #32, successful"),
+        ("Staging deployment", "Latest successful GitHub Actions deploy-staging run is linked from the README"),
     ], [2600, 6760])
     add_note(doc, "Live test guidance", "Ask for an appointment in English, Hindi, or Hinglish. Give a full name before booking. Try a named branch, a natural time such as 'Thursday morning' or 'after work around 4:30', and ask for a human if needed. The browser demo requires microphone permission. Never share generated web-call URLs because they contain short-lived access tokens.", fill="FFF4D6", color="7A5A00")
 
@@ -355,7 +355,7 @@ def main():
     add_number(doc, "Use one concise holding phrase while a tool runs. Log human follow-up for clinical, unsupported, or human-requested cases without pretending an immediate transfer occurred.")
 
     add_heading(doc, "8. Evaluation Harness and Current Evidence", 1)
-    add_para(doc, "The repository contains 17 versioned multi-turn scenarios across English, Hindi, and Hinglish, a redaction validator, a renderer, and per-language reporting. The strict validator is designed to prevent a partial or blended result from being presented as complete coverage.")
+    add_para(doc, "The repository contains 17 versioned multi-turn scenarios and requires each scenario in English, Hindi, and Hinglish: 51 live calls in total. It includes a redaction validator, a renderer, and per-language reporting. The strict validator rejects partial or blended coverage.")
     add_para(doc, "Existing live evidence was evaluated from eight completed Retell phone calls made on 2026-07-20. One web call where the caller never joined was excluded. The calls were exploratory rather than pre-assigned one-to-one to the 17 scenario IDs.")
     add_table(doc, ["Observed bucket", "Calls", "Definitive bookings", "ASR p50", "LLM p50", "TTS p50", "E2E p50"], [
         ("English", "6", "0", "195 ms", "1,023 ms", "384 ms", "2,265 ms"),
@@ -385,7 +385,7 @@ def main():
     add_para(doc, "Deployment is defined in infra/terraform and .github/workflows. Staging uses one ECS task, private RDS, ALB access, Secrets Manager, KMS, SQS/DLQ, CloudWatch, and CloudTrail resources. Production profile settings enable stronger isolation, multiple tasks, Multi-AZ RDS, backups, and deletion protection.")
 
     add_heading(doc, "10. Known Limitations and Next Verification", 1)
-    add_bullet(doc, "Run every versioned scenario in the required language mode and record redacted scenario-level measurements.")
+    add_bullet(doc, "Run all 17 scenarios in English, Hindi, and Hinglish, for 51 total calls, and record redacted scenario-level measurements.")
     add_bullet(doc, "Run a final live synthetic booking, reschedule, cancellation, conflict, and human-follow-up canary after the current deployment.")
     add_bullet(doc, "Capture controlled network timing and backend spans so network latency can be reported separately from platform component latency.")
     add_bullet(doc, "Repeat the live calls after the latest patient-booking and language handling fixes; the observed pilot includes earlier failures and should not be treated as a current success rate.")
@@ -397,7 +397,7 @@ def main():
     add_para(doc, "Subject: Voice AI Engineer Assignment - 2care Clinic Voice Agent", bold=True)
     add_para(doc, "Hello 2care.ai team,\n\nI have completed the implementation portion of the Voice AI Engineer assignment and built a live bilingual clinic receptionist using Retell, Twilio, AWS, PostgreSQL, and Cliniko. The write-up, architecture, prompt logic, deployment instructions, tests, and evaluation materials are available in the links below.")
     add_para(doc, "GitHub repository: https://github.com/khushalkumar/2care-clinic-voice-agent\nWrite-up: https://github.com/khushalkumar/2care-clinic-voice-agent/blob/main/README.md\nPrompt: https://github.com/khushalkumar/2care-clinic-voice-agent/blob/main/integrations/voice/retell/prompt.md\nLive test number: +1 417 742 8846\nBrowser test: https://khushalkumar.github.io/2care-clinic-voice-agent/")
-    add_para(doc, "The repository also includes an observed pilot report from eight completed calls. It is clearly labeled as exploratory evidence; the complete 17-scenario live evaluation remains identified as pending rather than overstated.")
+    add_para(doc, "The repository also includes an observed pilot report from eight completed calls. It is clearly labeled as exploratory evidence; the complete 51-call multilingual evaluation remains identified as pending rather than overstated.")
     add_para(doc, "Regards,\nKhushal Kumar")
 
     add_heading(doc, "Appendix A. Source and Repository Map", 1)
@@ -412,7 +412,7 @@ def main():
         ("Security design", "docs/security-and-privacy.md"),
         ("Deployment runbook", "docs/runbooks/deployment.md"),
     ], [2600, 6760])
-    add_para(doc, "Prepared from repository state at commit 3a03338 on 2026-07-20.", after=0, color=MUTED, size=9, italic=True)
+    add_para(doc, "Prepared from the repository state on 2026-07-20; see the GitHub commit history for the exact revision.", after=0, color=MUTED, size=9, italic=True)
 
     doc.save(OUT)
     print(OUT)
