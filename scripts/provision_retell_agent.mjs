@@ -126,16 +126,15 @@ const tools = [
   ),
   customTool(
     "list_patient_appointments",
-    "List only the selected caller's appointments before a reschedule or cancellation.",
+    "List appointments for the patient already bound to this call by caller ID. Do not ask for or send a full name when bootstrap returns recognized_by_phone.",
     "/v1/tools/list-patient-appointments",
     {
       type: "object",
       properties: {
         session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
         patient_id: string,
-        full_name: string,
       },
-      required: ["session_id", "patient_id", "full_name"],
+      required: ["session_id", "patient_id"],
     },
   ),
   customTool(
@@ -147,12 +146,11 @@ const tools = [
       properties: {
         session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
         patient_id: string,
-        full_name: string,
         appointment_id: string,
         availability_token: string,
         idempotency_key: string,
       },
-      required: ["session_id", "patient_id", "full_name", "appointment_id", "availability_token", "idempotency_key"],
+      required: ["session_id", "patient_id", "appointment_id", "availability_token", "idempotency_key"],
     },
   ),
   customTool(
@@ -164,11 +162,10 @@ const tools = [
       properties: {
         session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
         patient_id: string,
-        full_name: string,
         appointment_id: string,
         idempotency_key: string,
       },
-      required: ["session_id", "patient_id", "full_name", "appointment_id", "idempotency_key"],
+      required: ["session_id", "patient_id", "appointment_id", "idempotency_key"],
     },
   ),
   customTool(

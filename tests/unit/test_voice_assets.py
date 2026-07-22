@@ -76,6 +76,9 @@ def test_retell_tools_bind_availability_to_bootstrapped_session() -> None:
     assert "for both `search_availability` and `book_appointment`" in prompt
     assert "patient_lookup.mode` as `new_patient`" in prompt
     assert "patient_id` as exactly" in prompt
+    assert "recognized_by_phone" in prompt
+    assert "do not ask for\n  their phone number or full name" in prompt
+    assert 'required: ["session_id", "patient_id"]' in provisioner
 
 
 def test_retell_web_fallbacks_use_valid_inbound_call_values() -> None:
@@ -131,7 +134,7 @@ def test_retell_prompt_contains_explicit_safety_and_recovery_invariants() -> Non
     prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
 
     required_rules = [
-        "FULL_NAME_GATE",
+        "PHONE_IDENTITY_GATE",
         "FRESH_AVAILABILITY_GATE",
         "NO_FALSE_CONFIRMATION",
         "NO_CLINICAL_ADVICE",

@@ -16,12 +16,10 @@ def test_patient_mutation_requests_use_session_bound_identity() -> None:
     appointments = PatientAppointmentsRequest(
         session_id=session_id,
         patient_id="patient-1",
-        full_name="Aarav Sharma",
     )
     cancellation = CancelAppointmentRequest(
         session_id=session_id,
         patient_id="patient-1",
-        full_name="Aarav Sharma",
         appointment_id="appointment-1",
         idempotency_key="cancel-1",
     )
@@ -35,7 +33,6 @@ def test_reschedule_requires_a_fresh_availability_token() -> None:
         RescheduleAppointmentRequest(
             session_id=uuid4(),
             patient_id="patient-1",
-            full_name="Aarav Sharma",
             appointment_id="appointment-1",
             starts_at="2026-07-20T08:30:00Z",
             ends_at="2026-07-20T09:30:00Z",

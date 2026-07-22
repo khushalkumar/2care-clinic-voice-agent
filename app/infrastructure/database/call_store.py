@@ -4,9 +4,15 @@ from uuid import UUID, uuid4
 
 import phonenumbers
 from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.infrastructure.database.models import CallSession, FollowUp, OutboundContext
+from app.infrastructure.database.models import (
+    CallSession,
+    FollowUp,
+    OutboundContext,
+    PatientPhoneIdentity,
+)
 
 
 def normalize_phone(value: str) -> str:
@@ -176,6 +182,39 @@ class CallStore:
             row.patient_id = patient_id
             row.updated_at = now
             return True
+
+    async def bind_phone_identity(
+        self,
+        phone_e164: str,
+        patient_id: str,
+        *,
+        source: str,
+        now: datetime,
+    ) -> None:
+        phone = normalize_phone(phone_e164)
+        async with self._session_factory() as session, session.begin():
+            await session.execute(
+                insert(PatientPhoneIdentity)
+                .values(
+                    phone_e164=phone,
+                    patient_id=patient_id,
+                    source=source,
+                    created_at=now,
+                )
+                .on_conflict_do_nothing()
+            )
+
+    async def patient_ids_for_phone(self, phone_e164: str) -> tuple[str, ...]:
+        phone = normalize_phone(phone_e164)
+        async with self._session_factory() as session:
+            patient_ids = (
+                await session.scalars(
+                    select(PatientPhoneIdentity.patient_id)
+                    .where(PatientPhoneIdentity.phone_e164 == phone)
+                    .order_by(PatientPhoneIdentity.patient_id)
+                )
+            ).all()
+        return tuple(patient_ids)
 
     async def end(
         self,

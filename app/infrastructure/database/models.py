@@ -213,6 +213,15 @@ class CallSession(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class PatientPhoneIdentity(Base):
+    __tablename__ = "patient_phone_identities"
+
+    phone_e164: Mapped[str] = mapped_column(String(20), primary_key=True)
+    patient_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    source: Mapped[str] = mapped_column(String(30), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class OutboundContext(Base):
     __tablename__ = "outbound_contexts"
     __table_args__ = (

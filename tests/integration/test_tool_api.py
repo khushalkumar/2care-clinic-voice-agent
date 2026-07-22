@@ -203,7 +203,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         list_payload = {
             "session_id": session_id,
             "patient_id": "aarav-sharma",
-            "full_name": "Aarav Sharma",
         }
         list_body = json.dumps(list_payload, separators=(",", ":")).encode()
         listed = await client.post(
@@ -222,7 +221,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
 
         wrong_patient_payload = list_payload | {
             "patient_id": "meera-sharma",
-            "full_name": "Meera Sharma",
         }
         wrong_patient_body = json.dumps(wrong_patient_payload, separators=(",", ":")).encode()
         wrong_patient = await client.post(
@@ -261,7 +259,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         move_payload = {
             "session_id": session_id,
             "patient_id": "aarav-sharma",
-            "full_name": "Aarav Sharma",
             "appointment_id": appointment_id,
             "availability_token": reschedule_slot["availability_token"],
             "idempotency_key": "move-api-1",
@@ -302,7 +299,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         cancel_payload = {
             "session_id": session_id,
             "patient_id": "aarav-sharma",
-            "full_name": "Aarav Sharma",
             "appointment_id": appointment_id,
             "idempotency_key": "cancel-api-1",
         }

@@ -165,7 +165,8 @@ Availability is not a promise. Every mutation follows this protocol:
    Longer caller windows are split into seven-date chunks, paginated, merged, and deduplicated.
 2. Remove slots covered by unexpired PostgreSQL reservations.
 3. Return ranked choices with an opaque `availability_token` containing a query ID, not trusted slot data.
-4. On booking, validate caller full name and all required fields.
+4. On new-patient booking, validate the confirmed full name and bind the created patient to the
+   normalized caller-ID phone number. Returning-patient mutations use that durable binding.
 5. Begin a PostgreSQL transaction and insert a short-lived reservation.
 6. Let the GiST exclusion constraint atomically reject overlapping active reservations/appointments.
 7. Re-fetch the selected slot from Cliniko.
@@ -273,8 +274,10 @@ Output: new/returning/shared-number classification, candidate first names only, 
 
 Rules:
 
-- Never select a patient when multiple records share the number.
-- A recognized number does not remove the full-name requirement.
+- Persist normalized phone-to-patient mappings after PMS lookup or patient creation.
+- Bind a single phone match to the call session without asking the caller to repeat their name.
+- Never automatically select a patient when multiple records share the number.
+- Require explicit branch/date/time confirmation before cancellation or rescheduling.
 - Resume only an eligible recent incomplete call, with a short acknowledgement.
 
 ### `search_availability`
@@ -478,7 +481,9 @@ Write gateway contract tests first. Implement patient lookup, availability, life
 
 ### Slice 4: application tools
 
-Test every tool through HTTP with the mock PMS. Verify shared phones, full-name gate, global earliest search, stale-query rejection, branch matching, and honest pending responses.
+Test every tool through HTTP with the mock PMS. Verify caller-ID recognition, shared-phone
+ambiguity, explicit mutation confirmation, global earliest search, stale-query rejection, branch
+matching, and honest pending responses.
 
 ### Slice 5: Cliniko adapter
 

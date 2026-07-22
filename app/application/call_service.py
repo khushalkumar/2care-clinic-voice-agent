@@ -51,9 +51,27 @@ class CallService:
 
     async def bootstrap(self, request: StartCall) -> BootstrapResult:
         started = await self._store.start(request, now=self._clock())
-        patients = await self._pms.find_patients_by_phone(started.session.caller_phone_e164)
+        phone = started.session.caller_phone_e164
+        mapped_ids = await self._store.patient_ids_for_phone(phone)
+        patients = [
+            patient
+            for patient_id in mapped_ids
+            if (patient := await self._pms.get_patient(patient_id)) is not None
+            and patient.phone_e164 == phone
+        ]
+        if not patients:
+            patients = list(await self._pms.find_patients_by_phone(phone))
+            for patient in patients:
+                await self._store.bind_phone_identity(
+                    phone, patient.id, source="pms_lookup", now=self._clock()
+                )
         if len(patients) == 1:
-            lookup = PatientLookup(1, "verify_full_name", patients[0].id)
+            patient = patients[0]
+            if not await self._store.bind_patient(
+                started.session.id, patient.id, now=self._clock()
+            ):
+                raise CallAuthorizationError("patient_mismatch")
+            lookup = PatientLookup(1, "recognized_by_phone", patient.id)
         elif len(patients) > 1:
             lookup = PatientLookup(len(patients), "disambiguate")
         else:
@@ -73,6 +91,22 @@ class CallService:
             raise CallAuthorizationError("full_name_mismatch")
         if not await self._store.bind_patient(session_id, patient_id, now=self._clock()):
             raise CallAuthorizationError("patient_mismatch")
+        await self._store.bind_phone_identity(
+            session.caller_phone_e164,
+            patient_id,
+            source="authorized_call",
+            now=self._clock(),
+        )
+
+    async def authorize_phone_patient(self, session_id: UUID, patient_id: str) -> None:
+        session = await self.require_active_session(session_id)
+        if session.patient_id != patient_id:
+            raise CallAuthorizationError("patient_mismatch")
+        patient = await self._pms.get_patient(patient_id)
+        if patient is None:
+            raise CallAuthorizationError("patient_not_found")
+        if patient.phone_e164 != session.caller_phone_e164:
+            raise CallAuthorizationError("patient_phone_mismatch")
 
     async def register_new_patient(
         self, session_id: UUID, full_name: str, *, idempotency_key: str
@@ -115,6 +149,12 @@ class CallService:
             raise CallAuthorizationError("full_name_mismatch")
         if not await self._store.bind_patient(session_id, patient.id, now=self._clock()):
             raise CallAuthorizationError("patient_mismatch")
+        await self._store.bind_phone_identity(
+            session.caller_phone_e164,
+            patient.id,
+            source="patient_registration",
+            now=self._clock(),
+        )
         return patient
 
     async def require_active_session(self, session_id: UUID) -> CallSessionRecord:

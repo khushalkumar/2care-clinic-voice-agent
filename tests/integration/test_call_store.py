@@ -150,3 +150,17 @@ async def test_checkpoint_without_identity_does_not_clear_bound_patient(
     assert current is not None
     assert current.patient_id == "aarav-sharma"
     assert current.language_mode == "en"
+
+
+async def test_phone_identity_supports_single_and_shared_numbers(call_store: CallStore) -> None:
+    now = datetime(2026, 7, 18, 8, 0, tzinfo=UTC)
+
+    await call_store.bind_phone_identity("+919900000009", "patient-1", source="cliniko", now=now)
+    await call_store.bind_phone_identity("+919900000009", "patient-1", source="cliniko", now=now)
+    assert await call_store.patient_ids_for_phone("09900000009") == ("patient-1",)
+
+    await call_store.bind_phone_identity("+919900000009", "patient-2", source="cliniko", now=now)
+    assert await call_store.patient_ids_for_phone("+919900000009") == (
+        "patient-1",
+        "patient-2",
+    )

@@ -6,9 +6,11 @@
 - Event IDs are claimed atomically in PostgreSQL for replay defense across tasks and restarts.
 - Pydantic rejects unknown fields; SQLAlchemy binds values; provider hosts are configured, not caller supplied.
 - Availability tokens are signed, short lived, call bound, and rechecked against the PMS.
-- Patient list/reschedule/cancel mutations require an active call session, matching caller phone,
-  normalized full name, and a server-side patient binding. Rescheduling also requires a fresh signed
-  availability token and local exclusion-constraint reservation.
+- Patient list/reschedule/cancel mutations require an active call session, an exact normalized
+  caller-ID match, and a durable server-side phone-to-patient binding. Shared numbers remain
+  ambiguous until one patient is selected. Every mutation requires explicit confirmation of the
+  selected appointment; rescheduling also requires a fresh signed availability token and local
+  exclusion-constraint reservation.
 - Browser CORS is disabled by default because Retell calls the API server-to-server. If a browser
   origin is ever needed, `CORS_ALLOWED_ORIGINS` accepts only explicit HTTP(S) origins and never `*`.
 - Responses include baseline browser hardening headers. AWS WAF is an explicit production edge

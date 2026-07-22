@@ -88,7 +88,6 @@ class PatientAppointmentsRequest(BaseModel):
 
     session_id: UUID
     patient_id: str
-    full_name: str
 
 
 class RescheduleAppointmentRequest(BaseModel):
@@ -96,7 +95,6 @@ class RescheduleAppointmentRequest(BaseModel):
 
     session_id: UUID
     patient_id: str
-    full_name: str
     appointment_id: str
     availability_token: str
     idempotency_key: str
@@ -107,7 +105,6 @@ class CancelAppointmentRequest(BaseModel):
 
     session_id: UUID
     patient_id: str
-    full_name: str
     appointment_id: str
     idempotency_key: str
 
@@ -471,7 +468,7 @@ def create_app(
     async def list_patient_appointments(
         payload: PatientAppointmentsRequest,
     ) -> dict[str, Any]:
-        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
+        await calls.authorize_phone_patient(payload.session_id, payload.patient_id)
         appointments = await booking.list_patient_appointments(payload.patient_id)
         return {"appointments": [_appointment_payload(appointment) for appointment in appointments]}
 
@@ -479,7 +476,7 @@ def create_app(
     async def reschedule_appointment(
         payload: RescheduleAppointmentRequest,
     ) -> dict[str, Any]:
-        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
+        await calls.authorize_phone_patient(payload.session_id, payload.patient_id)
         outcome = await booking.reschedule(
             session_id=str(payload.session_id),
             patient_id=payload.patient_id,
@@ -495,7 +492,7 @@ def create_app(
 
     @app.post("/v1/tools/cancel-appointment")
     async def cancel_appointment(payload: CancelAppointmentRequest) -> dict[str, Any]:
-        await calls.authorize_patient(payload.session_id, payload.patient_id, payload.full_name)
+        await calls.authorize_phone_patient(payload.session_id, payload.patient_id)
         outcome = await booking.cancel(
             patient_id=payload.patient_id,
             appointment_id=payload.appointment_id,

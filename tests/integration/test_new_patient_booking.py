@@ -108,7 +108,52 @@ async def test_new_patient_booking_registers_before_pms_write(
         )
         assert booked.status_code == 200, booked.text
         assert booked.json()["status"] == "confirmed"
-        assert booked.json()["appointment"]["patient_id"] != "new_patient"
+        patient_id = booked.json()["appointment"]["patient_id"]
+        assert patient_id != "new_patient"
+
+        returning = await post(
+            "/v1/tools/bootstrap-call",
+            "returning-patient-bootstrap",
+            {
+                "platform_call_id": "returning-patient-call",
+                "direction": "inbound",
+                "caller_phone": "+919900000099",
+                "called_phone": "+918012345678",
+            },
+        )
+        assert returning.status_code == 200, returning.text
+        assert returning.json()["patient_lookup"] == {
+            "match_count": 1,
+            "mode": "recognized_by_phone",
+            "patient_id": patient_id,
+        }
+
+        listed = await post(
+            "/v1/tools/list-patient-appointments",
+            "returning-patient-list",
+            {
+                "session_id": returning.json()["session_id"],
+                "patient_id": patient_id,
+            },
+        )
+        assert listed.status_code == 200, listed.text
+        assert [item["id"] for item in listed.json()["appointments"]] == [
+            booked.json()["appointment"]["id"]
+        ]
+
+        cancelled = await post(
+            "/v1/tools/cancel-appointment",
+            "returning-patient-cancel",
+            {
+                "session_id": returning.json()["session_id"],
+                "patient_id": patient_id,
+                "appointment_id": booked.json()["appointment"]["id"],
+                "idempotency_key": "returning-patient-cancel-1",
+            },
+        )
+        assert cancelled.status_code == 200, cancelled.text
+        assert cancelled.json()["status"] == "confirmed"
+        assert cancelled.json()["appointment"]["status"] == "cancelled"
     finally:
         await client.aclose()
         await engine.dispose()
