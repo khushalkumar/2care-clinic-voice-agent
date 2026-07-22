@@ -93,7 +93,10 @@ def test_retell_prompt_uses_caller_id_and_a_calm_opening() -> None:
 
     assert "caller to" in prompt
     assert "telephony already provides" in prompt
-    assert "{{from_number}}" in provisioner
+    assert "{{user_number}}" in provisioner
+    assert "{{from_number}}" not in provisioner
+    assert "retry `bootstrap_call` once" in prompt
+    assert "Never use the Retell call ID as `session_id`" in prompt
     assert "May I have your phone number" not in provisioner
     assert "voice_speed: 0.95" in provisioner
 

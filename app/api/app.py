@@ -44,6 +44,14 @@ class ApiSettings:
     same_day_booking_buffer_minutes: int = 60
 
 
+def split_appointment_type_name(name: str) -> tuple[str | None, str]:
+    for separator in (" — ", " - "):
+        if separator in name:
+            branch_name, visit_type_name = name.split(separator, 1)
+            return branch_name, visit_type_name
+    return None, name
+
+
 class SearchAvailabilityRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -301,6 +309,10 @@ def create_app(
             for practitioner in await pms.list_practitioners(business.id)
         ]
         appointment_types = await pms.list_appointment_types()
+        presented_appointment_types = [
+            (appointment_type, split_appointment_type_name(appointment_type.name))
+            for appointment_type in appointment_types
+        ]
         return {
             "businesses": [
                 {"id": business.id, "name": business.name, "timezone": business.timezone}
@@ -318,15 +330,11 @@ def create_app(
                 {
                     "id": appointment_type.id,
                     "name": appointment_type.name,
-                    "branch_name": appointment_type.name.split(" - ", 1)[0]
-                    if " - " in appointment_type.name
-                    else None,
-                    "visit_type_name": appointment_type.name.split(" - ", 1)[1]
-                    if " - " in appointment_type.name
-                    else appointment_type.name,
+                    "branch_name": branch_name,
+                    "visit_type_name": visit_type_name,
                     "duration_minutes": appointment_type.duration_minutes,
                 }
-                for appointment_type in appointment_types
+                for appointment_type, (branch_name, visit_type_name) in presented_appointment_types
             ],
         }
 

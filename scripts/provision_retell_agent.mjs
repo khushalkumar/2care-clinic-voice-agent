@@ -61,14 +61,14 @@ const tools = [
   ),
   customTool(
     "bootstrap_call",
-    "Create or resume a call session using Retell's caller ID. Use {{from_number}} for caller_phone on inbound calls; do not ask the caller to repeat it. Use Retell's call_id, direction, and agent_number system variables for call metadata.",
+    "Create or resume a call session using Retell's caller ID. Use {{user_number}} for caller_phone on inbound calls; do not ask the caller to repeat it unless bootstrap rejects it. Use Retell's call_id, direction, and agent_number system variables for call metadata.",
     "/v1/tools/bootstrap-call",
     {
       type: "object",
       properties: {
         platform_call_id: { ...string, description: "Use {{call_id}} exactly." },
         direction: { ...string, enum: ["inbound"], description: "Use {{direction}} exactly." },
-        caller_phone: { ...string, description: "Use {{from_number}} exactly for the inbound caller phone in E.164 format. Never ask for it when caller ID is available." },
+        caller_phone: { ...string, description: "Use {{user_number}} exactly for the inbound caller phone in E.164 format. Ask for the number only if caller-ID bootstrap is rejected." },
         called_phone: { ...string, description: "Use {{agent_number}} exactly." },
       },
       required: ["platform_call_id", "direction", "caller_phone", "called_phone"],
