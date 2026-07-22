@@ -25,8 +25,8 @@
       "name": "search_availability",
       "method": "POST",
       "path": "/v1/tools/search-availability",
-      "purpose": "Get fresh conflict-free slots and opaque booking tokens",
-      "required": ["session_id", "business_id", "practitioner_ids", "appointment_type_id", "starts_at", "ends_at"]
+      "purpose": "Globally rank fresh conflict-free slots across up to four clinic targets and return at most three opaque booking tokens",
+      "required": ["session_id", "targets", "starts_at", "ends_at"]
     },
     {
       "name": "book_appointment",

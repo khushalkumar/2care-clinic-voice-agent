@@ -76,23 +76,33 @@ const tools = [
   ),
   customTool(
     "search_availability",
-    "Search fresh live availability. For same-date results, state spoken_date once and present spoken_time_range values as a compact numbered list; never repeat the weekday before every slot. Use spoken_label as the fallback for a cross-date slot. Call again whenever the caller changes any scheduling constraint.",
+    "Search fresh live availability across every eligible clinic target in one call. The backend globally ranks all targets and returns at most three slots. For same-date results, state spoken_date once and present spoken_time_range values as a compact numbered list; never repeat the weekday before every slot. Use spoken_label as the fallback for a cross-date slot. Call again whenever the caller changes any scheduling constraint.",
     "/v1/tools/search-availability",
     {
       type: "object",
       properties: {
         session_id: { ...string, description: "Use the session_id returned by bootstrap_call exactly." },
-        business_id: string,
-        practitioner_ids: { type: "array", items: string },
-        appointment_type_id: string,
+        targets: {
+          type: "array",
+          minItems: 1,
+          maxItems: 4,
+          description: "All eligible branch and appointment-type combinations. Use one target for a named branch and every relevant target for an earliest-across-branches request.",
+          items: {
+            type: "object",
+            properties: {
+              business_id: string,
+              practitioner_ids: { type: "array", minItems: 1, maxItems: 20, items: string },
+              appointment_type_id: string,
+            },
+            required: ["business_id", "practitioner_ids", "appointment_type_id"],
+          },
+        },
         starts_at: { ...string, description: "Timezone-aware ISO 8601 timestamp." },
         ends_at: { ...string, description: "Timezone-aware ISO 8601 timestamp." },
       },
       required: [
         "session_id",
-        "business_id",
-        "practitioner_ids",
-        "appointment_type_id",
+        "targets",
         "starts_at",
         "ends_at",
       ],

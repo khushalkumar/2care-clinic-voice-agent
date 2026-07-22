@@ -147,6 +147,7 @@ Terraform profile still refuses to provision voice traffic without that certific
 - [Research and decision register](docs/research-and-decision-register.md)
 - [Implementation specification](docs/implementation-spec.md)
 - [Production implementation plan](docs/implementation-plan.md)
+- [Production voice reliability decisions](docs/production-voice-reliability.md)
 - [Architecture](docs/architecture.md)
 - [Voice evaluation protocol](docs/evaluation.md)
 - [51-call evaluation worksheet](docs/evaluation-call-sheet.md)

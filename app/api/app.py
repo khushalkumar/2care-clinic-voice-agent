@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -18,7 +18,11 @@ from app.application.availability_token import (
     AvailabilityTokenError,
     AvailabilityTokenService,
 )
-from app.application.booking_service import BookingService, IdentityVerificationError
+from app.application.booking_service import (
+    AvailabilitySearchTarget,
+    BookingService,
+    IdentityVerificationError,
+)
 from app.application.call_service import CallAuthorizationError, CallService
 from app.application.ports.pms import PmsConflict, PmsError, PmsGateway
 from app.application.request_auth import RequestAuthenticator, RequestAuthError, SignedRequest
@@ -52,13 +56,19 @@ def split_appointment_type_name(name: str) -> tuple[str | None, str]:
     return None, name
 
 
+class AvailabilitySearchTargetRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    business_id: str
+    practitioner_ids: list[str] = Field(min_length=1, max_length=20)
+    appointment_type_id: str
+
+
 class SearchAvailabilityRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     session_id: UUID
-    business_id: str
-    practitioner_ids: list[str]
-    appointment_type_id: str
+    targets: list[AvailabilitySearchTargetRequest] = Field(min_length=1, max_length=4)
     starts_at: datetime
     ends_at: datetime
 
@@ -341,11 +351,16 @@ def create_app(
     @app.post("/v1/tools/search-availability")
     async def search_availability(payload: SearchAvailabilityRequest) -> dict[str, Any]:
         await calls.require_active_session(payload.session_id)
-        offered = await booking.search_availability(
+        result = await booking.search_availability_across_targets(
             session_id=str(payload.session_id),
-            business_id=payload.business_id,
-            practitioner_ids=payload.practitioner_ids,
-            appointment_type_id=payload.appointment_type_id,
+            targets=[
+                AvailabilitySearchTarget(
+                    business_id=target.business_id,
+                    practitioner_ids=tuple(target.practitioner_ids),
+                    appointment_type_id=target.appointment_type_id,
+                )
+                for target in payload.targets
+            ],
             starts_at=payload.starts_at,
             ends_at=payload.ends_at,
         )
@@ -364,8 +379,15 @@ def create_app(
                     ),
                     "availability_token": item.availability_token,
                 }
-                for item in offered
-            ]
+                for item in result.slots
+            ],
+            "search_scope": {
+                "target_count": result.target_count,
+                "globally_ranked": True,
+                "returned_slot_count": len(result.slots),
+                "total_slot_count": result.total_slot_count,
+                "truncated": result.truncated,
+            },
         }
 
     @app.post("/v1/tools/bootstrap-call")

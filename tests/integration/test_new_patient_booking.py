@@ -81,9 +81,13 @@ async def test_new_patient_booking_registers_before_pms_write(
             "new-patient-search",
             {
                 "session_id": session_id,
-                "business_id": "indiranagar",
-                "practitioner_ids": ["manjiri-arvind"],
-                "appointment_type_id": "initial-consultation",
+                "targets": [
+                    {
+                        "business_id": "indiranagar",
+                        "practitioner_ids": ["manjiri-arvind"],
+                        "appointment_type_id": "initial-consultation",
+                    }
+                ],
                 "starts_at": "2026-07-21T03:30:00Z",
                 "ends_at": "2026-07-21T07:30:00Z",
             },

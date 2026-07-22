@@ -279,9 +279,12 @@ Rules:
 
 ### `search_availability`
 
-Input: backend call-session ID, service/appointment type, date window, time window, optional branch/practitioner, and search mode (`matching` or `earliest`).
+Input: backend call-session ID, one to four targets (business, appointment type, and
+eligible practitioners), and a timezone-aware date/time window. A named-branch request
+uses one target; an earliest request includes every relevant branch target in one call.
 
-Output: up to three ranked slots, query ID/token, timezone, and applied constraints.
+Output: up to three globally ranked slots with session-bound availability tokens and
+search-scope metadata (`target_count`, total/returned counts, and truncation state).
 
 Rules:
 

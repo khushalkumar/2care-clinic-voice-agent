@@ -108,9 +108,18 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
 
         search_payload = {
             "session_id": session_id,
-            "business_id": "jayanagar",
-            "practitioner_ids": ["nadia-zainab"],
-            "appointment_type_id": "initial-consultation",
+            "targets": [
+                {
+                    "business_id": "jayanagar",
+                    "practitioner_ids": ["nadia-zainab"],
+                    "appointment_type_id": "initial-consultation",
+                },
+                {
+                    "business_id": "indiranagar",
+                    "practitioner_ids": ["manjiri-arvind"],
+                    "appointment_type_id": "initial-consultation",
+                },
+            ],
             "starts_at": "2026-07-21T03:30:00Z",
             "ends_at": "2026-07-21T07:30:00Z",
         }
@@ -133,6 +142,14 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         assert all("spoken_label" in slot for slot in offered)
         assert all("spoken_date" in slot for slot in offered)
         assert all("spoken_time_range" in slot for slot in offered)
+        assert len(offered) == 3
+        assert search.json()["search_scope"] == {
+            "target_count": 2,
+            "globally_ranked": True,
+            "returned_slot_count": 3,
+            "total_slot_count": 14,
+            "truncated": True,
+        }
 
         replay = await client.post(
             "/v1/tools/search-availability", content=search_body, headers=search_headers
@@ -356,9 +373,13 @@ async def test_retell_platform_token_can_call_voice_tools(migrated_database_url:
             headers={"X-2Care-Platform-Token": "r" * 32},
             json={
                 "session_id": bootstrap.json()["session_id"],
-                "business_id": "jayanagar",
-                "practitioner_ids": ["nadia-zainab"],
-                "appointment_type_id": "initial-consultation",
+                "targets": [
+                    {
+                        "business_id": "jayanagar",
+                        "practitioner_ids": ["nadia-zainab"],
+                        "appointment_type_id": "initial-consultation",
+                    }
+                ],
                 "starts_at": "2026-07-20T03:30:00Z",
                 "ends_at": "2026-07-20T07:30:00Z",
             },

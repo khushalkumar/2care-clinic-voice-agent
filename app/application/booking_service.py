@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -30,6 +31,24 @@ class OfferedSlot:
 
 
 @dataclass(frozen=True, slots=True)
+class AvailabilitySearchTarget:
+    business_id: str
+    practitioner_ids: tuple[str, ...]
+    appointment_type_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class AvailabilitySearchResult:
+    slots: tuple[OfferedSlot, ...]
+    target_count: int
+    total_slot_count: int
+
+    @property
+    def truncated(self) -> bool:
+        return self.total_slot_count > len(self.slots)
+
+
+@dataclass(frozen=True, slots=True)
 class BookingOutcome:
     status: str
     operation_id: str
@@ -56,6 +75,9 @@ def apply_same_day_buffer(
 
 
 class BookingService:
+    MAX_SEARCH_TARGETS = 4
+    MAX_VOICE_SLOTS = 3
+
     def __init__(
         self,
         pms: PmsGateway,
@@ -115,6 +137,62 @@ class BookingService:
             )
             for slot in slots
         ]
+
+    async def search_availability_across_targets(
+        self,
+        *,
+        session_id: str,
+        targets: Sequence[AvailabilitySearchTarget],
+        starts_at: datetime,
+        ends_at: datetime,
+    ) -> AvailabilitySearchResult:
+        if not 1 <= len(targets) <= self.MAX_SEARCH_TARGETS:
+            raise ValueError("availability search requires between 1 and 4 targets")
+
+        if any(not target.practitioner_ids for target in targets):
+            raise ValueError("availability search target requires practitioners")
+
+        unique_targets = tuple(dict.fromkeys(targets))
+        target_results = await asyncio.gather(
+            *(
+                self.search_availability(
+                    session_id=session_id,
+                    business_id=target.business_id,
+                    practitioner_ids=target.practitioner_ids,
+                    appointment_type_id=target.appointment_type_id,
+                    starts_at=starts_at,
+                    ends_at=ends_at,
+                )
+                for target in unique_targets
+            )
+        )
+        offered = [item for target_result in target_results for item in target_result]
+
+        unique = {
+            (
+                item.slot.business_id,
+                item.slot.practitioner_id,
+                item.slot.appointment_type_id,
+                item.slot.starts_at,
+                item.slot.ends_at,
+            ): item
+            for item in offered
+        }
+        ranked = sorted(
+            unique.values(),
+            key=lambda item: (
+                item.slot.starts_at,
+                item.slot.ends_at,
+                item.slot.business_id,
+                item.slot.practitioner_id,
+                item.slot.appointment_type_id,
+            ),
+        )
+        return AvailabilitySearchResult(
+            slots=tuple(ranked[: self.MAX_VOICE_SLOTS]),
+            target_count=len(unique_targets),
+            total_slot_count=len(ranked),
+        )
 
     async def book(
         self,

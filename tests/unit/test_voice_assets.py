@@ -102,6 +102,7 @@ def test_retell_prompt_uses_caller_id_and_a_calm_opening() -> None:
 
 
 def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
+    provisioner = (ROOT / "scripts/provision_retell_agent.mjs").read_text()
     prompt = (ROOT / "integrations/voice/retell/prompt.md").read_text()
 
     assert "spoken_label" in prompt
@@ -118,6 +119,12 @@ def test_retell_prompt_requires_spoken_slot_labels_and_clear_choices() -> None:
     assert "say the date only once" in prompt
     assert "On Tuesday, I found three" in prompt
     assert "Never say the weekday before every slot" in prompt
+    assert "targets: {" in provisioner
+    assert 'type: "array"' in provisioner
+    assert "maxItems: 4" in provisioner
+    assert '"targets"' in provisioner
+    assert "one search_availability call" in prompt
+    assert "globally ranked" in prompt
 
 
 def test_retell_prompt_contains_explicit_safety_and_recovery_invariants() -> None:
