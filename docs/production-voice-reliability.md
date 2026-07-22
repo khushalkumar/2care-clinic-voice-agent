@@ -30,7 +30,7 @@ flowchart LR
 | Cliniko load | Unlimited fan-out; sequential requests; bounded concurrent requests | Limit a request to four targets and 20 practitioner IDs per target, reject invalid fan-out before any upstream call, and deduplicate repeated targets. This supports the two-branch clinic without open-ended request multiplication. | Implemented and tested |
 | Read retries | No retry; retry every request; bounded idempotent retry | Cliniko GET/HEAD calls use finite timeouts and at most two retries. Rate limits honor `X-RateLimit-Reset` with a 30-second ceiling. Mutations are not automatically retried because their outcome may be unknown. | Implemented and tested |
 | Mutation safety | Raw timestamps; availability capability token | Booking and rescheduling require a short-lived session-bound availability token. Booking, rescheduling, and cancellation use idempotency keys and durable operation state. Unknown booking outcomes enter reconciliation rather than being repeated. | Implemented and tested |
-| Tool-call determinism | Free-form calls; strict structured calls | Retell strict tool-call mode is enabled. The tool schema forbids the old single-target shape and describes when to send one versus all targets. | Implemented; live publish pending deployment |
+| Tool-call determinism | Free-form calls; strict structured calls | Retell strict tool-call mode is enabled. The tool schema forbids the old single-target shape and describes when to send one versus all targets. | Implemented and live-verified |
 | LLM latency | Larger model or premium Fast Tier; shorter prompt and measured tuning | Keep the current deterministic model settings and do not enable Fast Tier without measured need because Retell prices it at 1.5x. Measure per-call ASR, LLM, TTS, network, and custom-function latency before changing model or endpointing. | Baseline implemented; live call measurement required |
 | TTS outage | Depend on one provider; Retell fallback | Retell documents automatic fallback for platform/standard voices and configurable fallback for third-party voices. The selected voice must be checked in the dashboard and a cross-provider fallback selected if Retell classifies it as third-party. | Dashboard verification required |
 | Monitoring | Logs only; provider and application alerts | Keep structured request/tool latency logs and use Retell alerts for call success, custom-function latency/failures, API errors, and cost. Alert thresholds need real-call baselines rather than invented values. | Application logs implemented; dashboard thresholds require baseline |
@@ -52,6 +52,13 @@ flowchart LR
 3. Confirm whether `11labs-Monika` is treated as a third-party voice and configure a similar cross-provider TTS fallback when required.
 4. Subscribe the operator to Cliniko and Retell status notifications.
 5. Review Cliniko rate-limit and tool-latency percentiles after representative traffic; reduce practitioner/target ceilings if traffic grows.
+
+## Deployment Evidence
+
+- GitHub Actions [staging run 39](https://github.com/khushalkumar/2care-clinic-voice-agent/actions/runs/29916964169) deployed application commit `5145185` successfully on 2026-07-22.
+- The post-deployment readiness request returned `200` and the authenticated catalog returned one business, two practitioners, and four branch-specific appointment types.
+- A read-only live smoke test bootstrapped a call session and searched two initial-consultation targets in one request. The backend globally ranked 13 Cliniko slots, returned exactly three, marked the response truncated, and issued a session-bound availability token for every returned slot.
+- The published Retell LLM requires `session_id`, `targets`, `starts_at`, and `ends_at`; `targets.maxItems` is four and strict tool calls remain enabled.
 
 ## Sources
 
