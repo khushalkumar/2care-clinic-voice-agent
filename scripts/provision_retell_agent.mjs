@@ -110,7 +110,7 @@ const tools = [
   ),
   customTool(
     "book_appointment",
-    "Book one current availability token after the caller confirms their full name and slot details.",
+    "Book one current availability token. For recognized_by_phone, omit patient_id and full_name; the backend uses the caller-ID-bound patient. Only for new_patient, send patient_id as new_patient and the caller-confirmed full_name.",
     "/v1/tools/book-appointment",
     {
       type: "object",
@@ -121,7 +121,7 @@ const tools = [
         availability_token: string,
         idempotency_key: string,
       },
-      required: ["session_id", "patient_id", "full_name", "availability_token", "idempotency_key"],
+      required: ["session_id", "availability_token", "idempotency_key"],
     },
   ),
   customTool(

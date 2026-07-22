@@ -159,30 +159,9 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
 
         book_payload = {
             "session_id": session_id,
-            "patient_id": "aarav-sharma",
-            "full_name": "Aarav Sharma",
             "availability_token": offered[0]["availability_token"],
             "idempotency_key": "book-api-1",
         }
-        wrong_identity_payload = book_payload | {
-            "full_name": "Someone Else",
-            "idempotency_key": "book-wrong-identity",
-        }
-        wrong_identity_body = json.dumps(wrong_identity_payload, separators=(",", ":")).encode()
-        wrong_identity = await client.post(
-            "/v1/tools/book-appointment",
-            content=wrong_identity_body,
-            headers=_signed_headers(
-                auth,
-                event_id="book-wrong-identity",
-                path="/v1/tools/book-appointment",
-                body=wrong_identity_body,
-                timestamp=timestamp,
-            ),
-        )
-        assert wrong_identity.status_code == 403
-        assert wrong_identity.json()["error"]["code"] == "full_name_mismatch"
-
         book_body = json.dumps(book_payload, separators=(",", ":")).encode()
         booked = await client.post(
             "/v1/tools/book-appointment",

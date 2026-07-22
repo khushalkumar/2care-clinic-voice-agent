@@ -77,8 +77,8 @@ class BookAppointmentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     session_id: UUID
-    patient_id: str
-    full_name: str
+    patient_id: str | None = None
+    full_name: str | None = None
     availability_token: str
     idempotency_key: str
 
@@ -440,6 +440,8 @@ def create_app(
     async def book_appointment(payload: BookAppointmentRequest) -> dict[str, Any]:
         patient_id = payload.patient_id
         if patient_id == "new_patient":
+            if not payload.full_name:
+                raise CallAuthorizationError("full_name_required")
             patient = await calls.register_new_patient(
                 payload.session_id,
                 payload.full_name,
@@ -447,7 +449,11 @@ def create_app(
             )
             patient_id = patient.id
         else:
-            await calls.authorize_patient(payload.session_id, patient_id, payload.full_name)
+            session = await calls.require_active_session(payload.session_id)
+            if session.patient_id is None:
+                raise CallAuthorizationError("patient_not_found")
+            patient_id = session.patient_id
+            await calls.authorize_phone_patient(payload.session_id, patient_id)
         outcome = await booking.book(
             session_id=str(payload.session_id),
             patient_id=patient_id,

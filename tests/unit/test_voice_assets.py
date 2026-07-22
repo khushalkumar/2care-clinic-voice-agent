@@ -79,6 +79,8 @@ def test_retell_tools_bind_availability_to_bootstrapped_session() -> None:
     assert "recognized_by_phone" in prompt
     assert "do not ask for\n  their phone number or full name" in prompt
     assert 'required: ["session_id"]' in provisioner
+    assert "For recognized_by_phone, omit patient_id and full_name" in provisioner
+    assert "do not ask for a name before booking" in prompt
 
 
 def test_retell_web_fallbacks_use_valid_inbound_call_values() -> None:

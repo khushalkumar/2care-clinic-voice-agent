@@ -199,16 +199,19 @@ class BookingService:
         *,
         session_id: str,
         patient_id: str,
-        full_name: str,
+        full_name: str | None,
         availability_token: str,
         idempotency_key: str,
     ) -> BookingOutcome:
         claim = self._tokens.verify(availability_token, expected_session_id=session_id)
         patient = await self._pms.get_patient(patient_id)
-        supplied_name = " ".join(full_name.casefold().split())
-        expected_name = " ".join(patient.full_name.casefold().split()) if patient else None
-        if not supplied_name or supplied_name != expected_name:
-            raise IdentityVerificationError("full_name_mismatch")
+        if patient is None:
+            raise IdentityVerificationError("patient_not_found")
+        if full_name is not None:
+            supplied_name = " ".join(full_name.casefold().split())
+            expected_name = " ".join(patient.full_name.casefold().split())
+            if not supplied_name or supplied_name != expected_name:
+                raise IdentityVerificationError("full_name_mismatch")
         reservation = await self._booking_store.reserve(
             ReservationRequest(
                 idempotency_key=idempotency_key,

@@ -33,7 +33,7 @@
       "method": "POST",
       "path": "/v1/tools/book-appointment",
       "purpose": "Book one offered slot with an unambiguous patient",
-      "required": ["session_id", "patient_id", "full_name", "availability_token", "idempotency_key"]
+      "required": ["session_id", "availability_token", "idempotency_key"]
     },
     {
       "name": "list_patient_appointments",

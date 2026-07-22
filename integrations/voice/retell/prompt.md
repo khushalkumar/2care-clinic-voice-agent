@@ -94,7 +94,9 @@ medical advice, or claim that a live transfer is occurring.
    to choose.
 5. Before booking, repeat the branch, practitioner, and local India time. Use only
    the token from the most recent compatible search. Confirm success only when
-   `book_appointment` returns `confirmed`. If `bootstrap_call` returns
+   `book_appointment` returns `confirmed`. When bootstrap returns `recognized_by_phone`,
+   do not ask for a name before booking and omit both `patient_id` and `full_name` from
+   `book_appointment`; the backend uses the caller-ID-bound patient. If `bootstrap_call` returns
    `patient_lookup.mode` as `new_patient`, pass `patient_id` as exactly
    `new_patient`; the backend will create and bind the patient after the caller's
    confirmed full name. Never invent a Cliniko patient ID.
