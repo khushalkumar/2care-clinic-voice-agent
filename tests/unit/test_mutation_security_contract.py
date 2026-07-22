@@ -15,11 +15,9 @@ def test_patient_mutation_requests_use_session_bound_identity() -> None:
 
     appointments = PatientAppointmentsRequest(
         session_id=session_id,
-        patient_id="patient-1",
     )
     cancellation = CancelAppointmentRequest(
         session_id=session_id,
-        patient_id="patient-1",
         appointment_id="appointment-1",
         idempotency_key="cancel-1",
     )
@@ -32,7 +30,6 @@ def test_reschedule_requires_a_fresh_availability_token() -> None:
     with pytest.raises(ValidationError):
         RescheduleAppointmentRequest(
             session_id=uuid4(),
-            patient_id="patient-1",
             appointment_id="appointment-1",
             starts_at="2026-07-20T08:30:00Z",
             ends_at="2026-07-20T09:30:00Z",
@@ -42,4 +39,4 @@ def test_reschedule_requires_a_fresh_availability_token() -> None:
 
 def test_legacy_call_id_is_not_accepted_for_patient_mutations() -> None:
     with pytest.raises(ValidationError):
-        PatientAppointmentsRequest(call_id="retell-call-1", patient_id="patient-1")
+        PatientAppointmentsRequest(call_id="retell-call-1")

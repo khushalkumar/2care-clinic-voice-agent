@@ -276,7 +276,7 @@ Rules:
 
 - Persist normalized phone-to-patient mappings after PMS lookup or patient creation.
 - Bind a single phone match to the call session without asking the caller to repeat their name.
-- Never automatically select a patient when multiple records share the number.
+- Treat multiple PMS patient records for one phone as aliases and select by appointment details.
 - Require explicit branch/date/time confirmation before cancellation or rescheduling.
 - Resume only an eligible recent incomplete call, with a short acknowledgement.
 

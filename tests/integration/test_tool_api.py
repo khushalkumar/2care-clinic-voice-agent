@@ -202,7 +202,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
 
         list_payload = {
             "session_id": session_id,
-            "patient_id": "aarav-sharma",
         }
         list_body = json.dumps(list_payload, separators=(",", ":")).encode()
         listed = await client.post(
@@ -218,24 +217,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
         )
         assert listed.status_code == 200, listed.text
         assert [item["id"] for item in listed.json()["appointments"]] == [appointment_id]
-
-        wrong_patient_payload = list_payload | {
-            "patient_id": "meera-sharma",
-        }
-        wrong_patient_body = json.dumps(wrong_patient_payload, separators=(",", ":")).encode()
-        wrong_patient = await client.post(
-            "/v1/tools/list-patient-appointments",
-            content=wrong_patient_body,
-            headers=_signed_headers(
-                auth,
-                event_id="list-wrong-patient",
-                path="/v1/tools/list-patient-appointments",
-                body=wrong_patient_body,
-                timestamp=timestamp,
-            ),
-        )
-        assert wrong_patient.status_code == 403
-        assert wrong_patient.json()["error"]["code"] == "patient_mismatch"
 
         fresh_search_payload = search_payload | {
             "starts_at": "2026-07-21T07:30:00Z",
@@ -258,7 +239,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
 
         move_payload = {
             "session_id": session_id,
-            "patient_id": "aarav-sharma",
             "appointment_id": appointment_id,
             "availability_token": reschedule_slot["availability_token"],
             "idempotency_key": "move-api-1",
@@ -298,7 +278,6 @@ async def test_authenticated_search_and_booking_flow(migrated_database_url: str)
 
         cancel_payload = {
             "session_id": session_id,
-            "patient_id": "aarav-sharma",
             "appointment_id": appointment_id,
             "idempotency_key": "cancel-api-1",
         }

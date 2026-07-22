@@ -67,7 +67,9 @@ async def test_bootstrap_checkpoint_followup_and_drop_recovery(
         )
         assert bootstrap.status_code == 200, bootstrap.text
         started = bootstrap.json()
-        assert started["patient_lookup"] == {"match_count": 2, "mode": "disambiguate"}
+        assert started["patient_lookup"]["match_count"] == 2
+        assert started["patient_lookup"]["mode"] == "recognized_by_phone"
+        assert started["patient_lookup"]["patient_id"] in {"aarav-sharma", "meera-sharma"}
         assert started["callback_context"]["purpose"] == "post-visit check-in"
         session_id = started["session_id"]
 

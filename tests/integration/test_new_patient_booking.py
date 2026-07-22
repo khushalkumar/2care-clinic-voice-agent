@@ -133,7 +133,6 @@ async def test_new_patient_booking_registers_before_pms_write(
             "returning-patient-list",
             {
                 "session_id": returning.json()["session_id"],
-                "patient_id": patient_id,
             },
         )
         assert listed.status_code == 200, listed.text
@@ -146,7 +145,6 @@ async def test_new_patient_booking_registers_before_pms_write(
             "returning-patient-cancel",
             {
                 "session_id": returning.json()["session_id"],
-                "patient_id": patient_id,
                 "appointment_id": booked.json()["appointment"]["id"],
                 "idempotency_key": "returning-patient-cancel-1",
             },

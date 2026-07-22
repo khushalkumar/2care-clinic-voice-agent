@@ -87,14 +87,12 @@ class PatientAppointmentsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     session_id: UUID
-    patient_id: str
 
 
 class RescheduleAppointmentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     session_id: UUID
-    patient_id: str
     appointment_id: str
     availability_token: str
     idempotency_key: str
@@ -104,7 +102,6 @@ class CancelAppointmentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     session_id: UUID
-    patient_id: str
     appointment_id: str
     idempotency_key: str
 
@@ -468,18 +465,25 @@ def create_app(
     async def list_patient_appointments(
         payload: PatientAppointmentsRequest,
     ) -> dict[str, Any]:
-        await calls.authorize_phone_patient(payload.session_id, payload.patient_id)
-        appointments = await booking.list_patient_appointments(payload.patient_id)
+        patient_ids = await calls.phone_patient_ids(payload.session_id)
+        appointments = [
+            appointment
+            for patient_id in patient_ids
+            for appointment in await booking.list_patient_appointments(patient_id)
+        ]
+        appointments.sort(key=lambda appointment: appointment.starts_at)
         return {"appointments": [_appointment_payload(appointment) for appointment in appointments]}
 
     @app.post("/v1/tools/reschedule-appointment")
     async def reschedule_appointment(
         payload: RescheduleAppointmentRequest,
     ) -> dict[str, Any]:
-        await calls.authorize_phone_patient(payload.session_id, payload.patient_id)
+        patient_id = await calls.authorize_phone_appointment(
+            payload.session_id, payload.appointment_id
+        )
         outcome = await booking.reschedule(
             session_id=str(payload.session_id),
-            patient_id=payload.patient_id,
+            patient_id=patient_id,
             availability_token=payload.availability_token,
             appointment_id=payload.appointment_id,
             idempotency_key=payload.idempotency_key,
@@ -492,9 +496,11 @@ def create_app(
 
     @app.post("/v1/tools/cancel-appointment")
     async def cancel_appointment(payload: CancelAppointmentRequest) -> dict[str, Any]:
-        await calls.authorize_phone_patient(payload.session_id, payload.patient_id)
+        patient_id = await calls.authorize_phone_appointment(
+            payload.session_id, payload.appointment_id
+        )
         outcome = await booking.cancel(
-            patient_id=payload.patient_id,
+            patient_id=patient_id,
             appointment_id=payload.appointment_id,
             idempotency_key=payload.idempotency_key,
         )
